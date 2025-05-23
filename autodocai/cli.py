@@ -31,7 +31,75 @@ def cli():
     pass
 
 
+# Define the underlying async function that will be called by sync_generate
+async def generate(
+    repo_url: Optional[str],
+    output_dir: Optional[str],
+    languages: Optional[str],
+    github_pat: Optional[str],
+    debug: bool,
+):
+    """Asynchronous implementation of the documentation generation process."""
+    # Create configuration from CLI args and environment variables
+    config = AppConfig.from_env_and_args(
+        repo_url=repo_url,
+        output_dir=output_dir,
+        languages=languages,
+        github_pat=github_pat,
+        debug=debug,
+    )
+
+    # Validate configuration
+    if not config.validate():
+        sys.exit(1)
+
+    # Create and run the workflow
+    workflow_runner = create_workflow(config)
+    result = await workflow_runner(repo_url=config.target_repo_url, output_dir=config.output_dir)
+
+    # Extract path and handle completion
+    if result.get("build_path"):
+        click.echo(f"✅ Documentation generated successfully in {config.output_dir}")
+        click.echo(f"   Documentation available at: {result.get('build_path')}")
+        
+        # Display statistics if available
+        snippets = result.get("snippets", [])
+        diagrams = result.get("diagrams", {})
+        if snippets or diagrams:
+            click.echo("\n📊 Statistics:")
+            click.echo(f"   Files processed: {len(snippets)}")
+            click.echo(f"   Functions documented: {sum(1 for s in snippets if s.get('symbol_type') == 'function')}")
+            click.echo(f"   Classes documented: {sum(1 for s in snippets if s.get('symbol_type') == 'class')}")
+            click.echo(f"   Diagrams generated: {len(diagrams)}")
+    else:
+        # Handle errors
+        errors = result.get("errors", [])
+        messages = result.get("messages", [])
+        
+        # Extract error messages from either the errors list or messages
+        error_messages = []
+        if errors:
+            error_messages = [f"- {error.get('message', 'Unknown error')}" for error in errors]
+        elif messages:
+            # Try to extract error messages from agent messages
+            error_messages = [f"- {msg.message}" for msg in messages if hasattr(msg, 'message_type') and msg.message_type == 'error']
+        
+        if not error_messages:
+            error_messages = ["Unknown error occurred"]
+            
+        click.echo(f"❌ Error(s):\n{chr(10).join(error_messages)}")
+        sys.exit(1)
+
+
 @cli.command()
+def configure():
+    """Configure AutoDoc AI settings."""
+    click.echo("Interactive configuration not yet implemented.")
+    click.echo("Please edit your .env file directly or use command-line options.")
+
+
+# Define a synchronous wrapper for the async generate command
+@cli.command(name="generate")
 @click.option(
     "--repo-url",
     help="GitHub repository URL to generate documentation for.",
@@ -62,41 +130,10 @@ def cli():
     is_flag=True,
     default=False,
 )
-async def generate(
-    repo_url: Optional[str],
-    output_dir: Optional[str],
-    languages: Optional[str],
-    github_pat: Optional[str],
-    debug: bool,
-):
+def sync_generate(repo_url, output_dir, languages, github_pat, debug):
     """Generate documentation from a GitHub repository."""
     try:
-        # Create configuration from CLI args and environment variables
-        config = AppConfig.from_env_and_args(
-            repo_url=repo_url,
-            output_dir=output_dir,
-            languages=languages,
-            github_pat=github_pat,
-            debug=debug,
-        )
-
-        # Validate configuration
-        if not config.validate():
-            sys.exit(1)
-
-        # Create and run the workflow
-        workflow_runner = create_workflow(config)
-        result = await workflow_runner(repo_url=config.target_repo_url, output_dir=config.output_dir)
-
-        if result.get("build_path"):
-            click.echo(f"✅ Documentation generated successfully in {config.output_dir}")
-            click.echo(f"   Documentation available at: {result.get('build_path')}")
-        else:
-            errors = result.get("errors", [])
-            error_message = "\n".join([f"- {error.get('message', 'Unknown error')}" for error in errors]) if errors else "Unknown error occurred"
-            click.echo(f"❌ Error(s):\n{error_message}")
-            sys.exit(1)
-
+        asyncio.run(generate(repo_url, output_dir, languages, github_pat, debug))
     except Exception as e:
         click.echo(f"❌ Error: {str(e)}")
         if debug:
@@ -105,22 +142,9 @@ async def generate(
         sys.exit(1)
 
 
-@cli.command()
-def configure():
-    """Configure AutoDoc AI settings."""
-    click.echo("Interactive configuration not yet implemented.")
-    click.echo("Please edit your .env file directly or use command-line options.")
-
-
 def main():
     """Entry point for the application."""
-    # Use asyncio.run for the async command
-    if len(sys.argv) > 1 and sys.argv[1] == "generate":
-        # Remove the 'generate' argument before passing to click
-        sys.argv.pop(1)
-        asyncio.run(generate())
-    else:
-        cli()
+    cli()
 
 
 if __name__ == "__main__":

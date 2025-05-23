@@ -12,6 +12,7 @@ AutoDoc AI is an advanced tool designed to automatically generate Docusaurus doc
 - **Multilingual Support**: Create documentation in both English and Vietnamese
 - **Docusaurus Format**: Output documentation in Markdown/MDX format compatible with Docusaurus
 - **Notification System**: Receive email notifications about processing status via SendGrid
+- **Modular Architecture**: Extensible agent-based architecture for easy customization
 
 ## Installation
 
@@ -49,24 +50,79 @@ cp .env.example .env
 - `SENDGRID_API_KEY`: SendGrid API key for email notifications
 - `SENDGRID_FROM_EMAIL`: Sender email address for notifications
 - `NOTIFICATION_EMAIL_TO`: Recipient email address for notifications
+- `SUMMARIZER_MODEL_NAME`: Model name for summary generation (default: `openai/gpt-4-turbo`)
+- `RAG_MODEL_NAME`: Model name for RAG queries (default: `openai/gpt-4-turbo`)
+- `OUTPUT_LANGUAGES`: Comma-separated list of language codes for output (default: `EN,VI`)
+- `LOG_LEVEL`: Logging level (default: `INFO`)
 - See `.env.example` for a complete list of configuration options
+
+## Architecture
+
+AutoDoc AI uses a modular agent-based architecture powered by LangGraph to orchestrate the documentation generation process:
+
+```
+┌────────────────┐     ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
+│                │     │                │     │                │     │                │
+│  RepoClonerAgent│────▶│CodeParserAgent │────▶│SummarizerAgent │────▶│DocstringEnhancer│
+│                │     │                │     │                │     │                │
+└────────────────┘     └────────────────┘     └────────────────┘     └────────────────┘
+                                                                               │
+┌────────────────┐     ┌────────────────┐     ┌────────────────┐     ┌─────────▼──────┐
+│                │     │                │     │                │     │                │
+│  DocBuilder    │◀────│  DocFormatter  │◀────│TranslationAgent│◀────│  RAGQueryAgent │
+│                │     │                │     │                │     │                │
+└────────────────┘     └────────────────┘     └────────────────┘     └────────────────┘
+        │                                                                     ▲
+        │                     ┌────────────────┐                              │
+        └────────────────────▶│                │──────────────────────────────┘
+                              │DiagramGenerator│
+                              │                │
+                              └────────────────┘
+```
+
+Each agent is responsible for a specific task in the documentation generation pipeline:
+
+1. **RepoClonerAgent**: Clones the target repository and extracts basic repository information
+2. **CodeParserAgent**: Parses the code to extract modules, classes, functions, and their relationships
+3. **SummarizerAgent**: Generates summaries for each code snippet
+4. **DocstringEnhancerAgent**: Enhances existing docstrings or generates new ones for code without documentation
+5. **RAGQueryAgent**: Uses Retrieval Augmented Generation to create architectural overviews
+6. **MermaidDiagramAgent**: Generates visual diagrams of code structure and relationships
+7. **TranslationAgent**: Translates documentation to supported languages
+8. **DocusaurusFormatterAgent**: Formats the documentation for Docusaurus
+9. **DocumentationBuilderAgent**: Builds the final Docusaurus site
 
 ## Usage
 
 ```bash
 # Basic usage with environment variables
-autodocai generate
+python -m autodocai.cli generate
 
 # Or specify parameters directly
-autodocai generate --repo-url https://github.com/username/repo --output-dir ./docs
+python -m autodocai.cli generate --repo-url https://github.com/username/repo --output-dir ./docs
+
+# For debugging
+python -m autodocai.cli generate --debug
 ```
 
 ## Development
 
+### Running Tests
+
 ```bash
-# Run tests
+# Run all tests
 pytest
 
+# Run specific agent tests
+pytest tests/agents/
+
+# Run with verbose output
+pytest -v
+```
+
+### Code Formatting and Linting
+
+```bash
 # Format code
 black autodocai tests
 isort autodocai tests
@@ -74,6 +130,15 @@ isort autodocai tests
 # Type checking
 mypy autodocai
 ```
+
+### Extending the Agent System
+
+To add a new agent to the system:
+
+1. Create a new agent class that inherits from `BaseAgent` in `autodocai/agents/`
+2. Implement the required `_execute` method
+3. Update the orchestrator in `autodocai/orchestrator.py` to include your agent
+4. Add tests for your agent in `tests/agents/`
 
 ## License
 

@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autodocai"
+version = "0.1.0"
+description = "AutoDoc AI - An AI-powered tool to automatically generate Docusaurus documentation from GitHub repositories"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "AutoDoc AI Team" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "gitpython>=3.1.37",
+    "langgraph>=0.0.25",
+    "python-dotenv>=1.0.0",
+    "qdrant-client>=1.7.0",
+    "openai>=1.12.0",
+    "sendgrid>=6.10.0",
+    "pydantic>=2.5.0",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.2", 
+    "click>=8.1.7",
+    "aiohttp>=3.9.1",
+    "asyncio>=3.4.3",
+    "nest-asyncio>=1.5.8",
+    "tqdm>=4.66.1",
+    "zod>=0.1.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+    "mypy>=1.5.1",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/autodocai"
+"Bug Tracker" = "https://github.com/yourusername/autodocai/issues"
+
+[project.scripts]
+autodocai = "autodocai.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["autodocai"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

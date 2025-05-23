@@ -1,0 +1,706 @@
+# Báo cáo Định nghĩa Sản phẩm: Công cụ Tạo Tài liệu Docusaurus từ Kho chứa GitHub bằng Trí tuệ Nhân tạo
+
+Ngày: 23 tháng 05 năm 2025  
+Phiên bản: 1.0  
+Chuẩn bị cho: Các Bên Liên Quan Nội Bộ  
+Chuẩn bị bởi: Kiến trúc sư Trưởng Phần mềm & Chuyên gia Tích hợp AI
+
+## **I. Giới thiệu**
+
+### **A. Mục đích của Tài liệu**
+
+Tài liệu Định nghĩa Sản phẩm (Product Definition Report \- PDR) này phác thảo kế hoạch chi tiết cho việc phát triển một công cụ tiên tiến có tên mã là "AutoDoc AI". Mục tiêu của tài liệu là xác định các yêu cầu, kiến trúc, công nghệ và chiến lược triển khai cho AutoDoc AI, một công cụ được thiết kế để tự động hóa việc tạo tài liệu Docusaurus từ các kho chứa mã nguồn trên GitHub, sử dụng hệ thống đa tác tử AI và các kỹ thuật truy xuất thông tin tiên tiến.
+
+### **B. Tầm nhìn Dự án**
+
+Tầm nhìn của AutoDoc AI là cách mạng hóa quy trình tạo và duy trì tài liệu kỹ thuật. Bằng cách tự động hóa việc trích xuất thông tin, tóm tắt mã nguồn, và tạo ra tài liệu có cấu trúc, AutoDoc AI hướng tới việc giảm đáng kể gánh nặng cho các nhà phát triển, cải thiện khả năng hiểu và tiếp cận mã nguồn, đồng thời thúc đẩy việc chia sẻ kiến thức hiệu quả hơn trong các nhóm phát triển và cộng đồng mã nguồn mở. Công cụ này sẽ hỗ trợ đa ngôn ngữ, tập trung ban đầu vào tiếng Anh và tiếng Việt, và được phát hành dưới dạng mã nguồn mở.
+
+### **C. Phạm vi**
+
+#### **Trong Phạm vi**
+
+Các chức năng và đặc điểm sau đây nằm trong phạm vi của phiên bản đầu tiên của AutoDoc AI:
+
+1. Truy cập và nhân bản (clone) kho chứa GitHub công khai và riêng tư (với Personal Access Token \- PAT).  
+2. Phân tích mã nguồn (ban đầu tập trung vào Python, có kế hoạch mở rộng).  
+3. Trích xuất các thành phần mã nguồn: hàm, lớp, phương thức, bình luận, docstrings, và các phụ thuộc cơ bản.  
+4. Sử dụng hệ thống đa tác tử AI (LangGraph) để điều phối các tác vụ: phân tích, tóm tắt, tạo docstring, tạo sơ đồ Mermaid, và truy vấn RAG.  
+5. Tích hợp với Qdrant làm cơ sở dữ liệu vector cho Retrieval Augmented Generation (RAG).  
+6. Sử dụng OpenRouter AI API với mô hình Bring Your Own Key (BYOK) để truy cập các mô hình ngôn ngữ lớn (LLM) khác nhau.  
+7. Tạo sơ đồ Mermaid.js (ví dụ: sơ đồ phụ thuộc, sơ đồ luồng cơ bản) từ mã nguồn được phân tích.  
+8. Tạo tài liệu đầu ra ở định dạng Docusaurus (Markdown, MDX).  
+9. Hỗ trợ quốc tế hóa cho tài liệu đầu ra (tiếng Anh và tiếng Việt).  
+10. Gửi thông báo qua SendGrid về trạng thái hoàn thành hoặc lỗi nghiêm trọng.  
+11. Kiểm thử toàn diện (đơn vị, tích hợp, E2E) và quy trình xây dựng (build) thành công.  
+12. Phát hành dưới dạng mã nguồn mở với giấy phép phù hợp.  
+13. Cho phép cấu hình các tác vụ tạo tài liệu thông qua biến môi trường.
+
+#### **Ngoài Phạm vi**
+
+Các chức năng sau đây hiện tại nằm ngoài phạm vi của phiên bản này:
+
+1. Giao diện người dùng đồ họa (GUI) phức tạp để cấu hình hoặc vận hành (ban đầu tập trung vào CLI).  
+2. Cập nhật tài liệu theo thời gian thực hoặc đồng bộ hóa liên tục với kho chứa.  
+3. Hỗ trợ đầy đủ tất cả các ngôn ngữ lập trình ngay từ phiên bản đầu tiên.  
+4. Tích hợp sâu với các IDE.  
+5. Phân tích mã nguồn cực kỳ phức tạp hoặc chuyên sâu về bảo mật.  
+6. Các tính năng cộng tác trực tuyến trên tài liệu được tạo ra.
+
+### **D. Đối tượng Mục tiêu của PDR**
+
+Tài liệu này dành cho các đối tượng sau:
+
+* **Nhà phát triển:** Để hiểu kiến trúc kỹ thuật, các thành phần và quy trình làm việc của dự án.  
+* **Quản lý Dự án:** Để theo dõi tiến độ, phạm vi và các mục tiêu của dự án.  
+* **Kỹ sư Đảm bảo Chất lượng (QA):** Để xây dựng chiến lược và kịch bản kiểm thử.  
+* **Các Bên Liên Quan:** Để có cái nhìn tổng quan về sản phẩm, mục tiêu và giá trị mang lại.
+
+### **E. Định nghĩa và Từ viết tắt**
+
+* **AI (Artificial Intelligence):** Trí tuệ Nhân tạo.  
+* **LLM (Large Language Model):** Mô hình Ngôn ngữ Lớn.  
+* **RAG (Retrieval Augmented Generation):** Sinh Truy xuất Tăng cường \- một kỹ thuật AI kết hợp truy xuất thông tin với khả năng sinh văn bản của LLM.  
+* **AST (Abstract Syntax Tree):** Cây Cú pháp Trừu tượng \- một biểu diễn dạng cây của cấu trúc cú pháp mã nguồn.  
+* **Docusaurus:** Một trình tạo trang web tĩnh được tối ưu hóa để tạo các trang tài liệu đẹp mắt một cách nhanh chóng.  
+* **LangGraph:** Một thư viện để xây dựng các ứng dụng trạng thái, đa tác tử với LLM.  
+* **Qdrant:** Một cơ sở dữ liệu vector và công cụ tìm kiếm tương tự vector.  
+* **OpenRouter:** Một API hợp nhất cho phép truy cập nhiều mô hình AI khác nhau.  
+* **BYOK (Bring Your Own Key):** Mô hình cho phép người dùng sử dụng khóa API của riêng họ với một dịch vụ.  
+* **Mermaid.js:** Một thư viện dựa trên JavaScript để tạo sơ đồ và biểu đồ từ văn bản.  
+* **PDR (Product Definition Report):** Báo cáo Định nghĩa Sản phẩm.  
+* **PAT (Personal Access Token):** Mã thông báo Truy cập Cá nhân, dùng để xác thực với các dịch vụ như GitHub.  
+* **CLI (Command Line Interface):** Giao diện Dòng lệnh.  
+* **API (Application Programming Interface):** Giao diện Lập trình Ứng dụng.  
+* **i18n (Internationalization):** Quốc tế hóa.
+
+## **II. Mục tiêu và Chỉ tiêu**
+
+### **A. Mục tiêu Chính**
+
+1. **Tự động hóa Tạo tài liệu:** Giảm thiểu nỗ lực thủ công cần thiết để tạo và duy trì tài liệu mã nguồn chất lượng cao.  
+2. **Cải thiện Khả năng Hiểu Mã nguồn:** Cung cấp tài liệu rõ ràng, có cấu trúc và dễ điều hướng, giúp các nhà phát triển nhanh chóng nắm bắt được các kho chứa mã nguồn phức tạp.  
+3. **Hỗ trợ Đa ngôn ngữ:** Tạo tài liệu bằng cả tiếng Anh và tiếng Việt để phục vụ đối tượng người dùng rộng hơn.  
+4. **Phát hành Mã nguồn mở:** Đóng góp công cụ này cho cộng đồng, cho phép tùy chỉnh và phát triển thêm.
+
+### **B. Chỉ tiêu Chính (SMART)**
+
+1. **Hoàn thành Engine Phân tích Mã nguồn Python:** Phát triển và kiểm thử thành công engine phân tích mã nguồn cho các dự án Python, có khả năng trích xuất các cấu trúc chính (hàm, lớp, docstrings) trong vòng 3 tháng.  
+2. **Tích hợp Tác tử LangGraph Cơ bản:** Tích hợp các tác tử LangGraph để tóm tắt mã nguồn và dịch thuật cơ bản (EN/VI) trong vòng 5 tháng.  
+3. **Triển khai RAG với Qdrant:** Triển khai thành công mô-đun RAG sử dụng Qdrant để trả lời các câu hỏi cơ bản về mã nguồn đã được lập chỉ mục vào cuối quý 3\.  
+4. **Tạo Tài liệu Docusaurus Thành công:** Tạo thành công tài liệu Docusaurus hoàn chỉnh, có thể xây dựng và xem được, cho ít nhất 3 kho chứa Python mẫu có độ phức tạp khác nhau trong vòng 7 tháng.  
+5. **Phát hành Phiên bản Mã nguồn mở Đầu tiên (Alpha):** Phát hành phiên bản alpha của AutoDoc AI trên GitHub với các tính năng cốt lõi vào cuối Quý 4 năm YYYY.
+
+## **III. Kiến trúc và Thiết kế Hệ thống**
+
+### **A. Sơ đồ Kiến trúc Tổng thể**
+
+Kiến trúc tổng thể của AutoDoc AI được thiết kế theo một luồng xử lý mô-đun hóa, bắt đầu từ việc thu thập mã nguồn từ GitHub, qua các giai đoạn phân tích và xử lý bằng AI, và cuối cùng là tạo ra tài liệu Docusaurus.
+
+Sơ đồ luồng dữ liệu chính như sau:  
+URL Kho GitHub \-\> \[A\] Engine Nhân bản & Truy cập Kho chứa \-\> Engine Phân tích Mã nguồn (Đa ngôn ngữ) \-\> \[C\] Hệ thống Đa Tác tử (LangGraph) \-\> Mô-đun RAG (Qdrant \+ OpenRouter) \-\> \[E\] Engine Tạo Tài liệu Docusaurus \-\> Tài liệu Docusaurus (EN/VI) \+ Sơ đồ Mermaid  
+Trong đó:
+
+* **\[A\] Engine Nhân bản & Truy cập Kho chứa:** Chịu trách nhiệm lấy mã nguồn từ GitHub.  
+* \*\* Engine Phân tích Mã nguồn:\*\* Phân tích mã nguồn thành các cấu trúc dễ hiểu hơn.  
+* **\[C\] Hệ thống Đa Tác tử (LangGraph):** Điều phối các tác tử AI chuyên biệt (Tóm tắt, Tạo Docstring, Tạo Sơ đồ Mermaid, Truy vấn RAG, Dịch thuật). Mỗi tác tử thực hiện một nhiệm vụ cụ thể.  
+* \*\* Mô-đun RAG:\*\* Sử dụng Qdrant để lưu trữ và truy xuất các đoạn mã đã được vector hóa, và OpenRouter để LLM sinh câu trả lời dựa trên ngữ cảnh truy xuất được.  
+* **\[E\] Engine Tạo Tài liệu Docusaurus:** Định dạng tất cả thông tin đã xử lý thành các tệp Markdown tương thích với Docusaurus, bao gồm cả cú pháp Mermaid và cấu trúc quốc tế hóa.
+
+Sơ đồ này minh họa sự tương tác giữa các thành phần chính, nhấn mạnh vai trò trung tâm của LangGraph trong việc điều phối và tính linh hoạt của việc sử dụng OpenRouter cho các tác vụ AI khác nhau.
+
+### **B. Engine Phân tích Mã nguồn**
+
+#### **1\. Truy cập và Nhân bản Kho chứa**
+
+Việc truy cập và nhân bản kho chứa GitHub là bước đầu tiên. Hệ thống sẽ hỗ trợ cả kho chứa công khai và riêng tư. Đối với kho chứa riêng tư, người dùng cần cung cấp Personal Access Token (PAT) của GitHub.  
+Có hai phương pháp chính để nhân bản kho chứa một cách có lập trình:
+
+* **Sử dụng GitHub API (REST hoặc GraphQL):** GitHub cung cấp các API để tương tác với kho chứa, bao gồm cả việc tạo fork hoặc tạo kho chứa từ template.1 Điều này cho phép kiểm soát chi tiết hơn nhưng có thể phức tạp hơn trong việc tái tạo toàn bộ lịch sử git một cách chính xác như git clone.  
+* **Sử dụng Git CLI:** Gọi trực tiếp các lệnh Git CLI (ví dụ: git clone) từ mã Python thông qua module subprocess hoặc các thư viện như GitPython. Phương pháp này đơn giản hơn để đảm bảo nhân bản đầy đủ và chính xác kho chứa.1 GitHub CLI (gh repo clone) cũng là một tùy chọn mạnh mẽ và tiện lợi.3
+
+Việc lựa chọn giữa API và CLI có những ảnh hưởng nhất định. CLI đơn giản hơn về mặt logic nhân bản nhưng yêu cầu Git phải được cài đặt trong môi trường thực thi của công cụ. Ngược lại, việc sử dụng API có thể "sạch sẽ" hơn về mặt phụ thuộc môi trường nhưng lại phức tạp hơn để triển khai một quy trình nhân bản hoàn chỉnh.  
+Khuyến nghị: Ban đầu, hệ thống nên ưu tiên sử dụng Git CLI do tính đơn giản và đảm bảo tính toàn vẹn của kho chứa được nhân bản. Đường dẫn đến tệp thực thi git có thể được cấu hình qua biến môi trường để tăng tính linh hoạt.
+
+#### **2\. Chiến lược Xác định Ngôn ngữ và Phân tích Cú pháp**
+
+Sau khi nhân bản, engine cần xác định các ngôn ngữ lập trình có trong kho chứa để áp dụng chiến lược phân tích cú pháp phù hợp.
+
+* **Tập trung ban đầu vào Python:** Do sự phổ biến và tính sẵn có của các công cụ phân tích mạnh mẽ trong hệ sinh thái Python, phiên bản đầu tiên sẽ tập trung vào việc phân tích mã nguồn Python. Module ast của Python sẽ được sử dụng để xây dựng Cây Cú pháp Trừu tượng (AST) cho các tệp Python.4  
+* **Hướng tới Hỗ trợ Đa ngôn ngữ:** Kiến trúc của engine phân tích cần được thiết kế theo dạng mô-đun để dễ dàng mở rộng hỗ trợ cho các ngôn ngữ khác trong tương lai (ví dụ: JavaScript, Java, C\#). Điều này có thể đạt được bằng cách trừu tượng hóa giao diện của bộ phân tích cú pháp.  
+  * Một công cụ tiềm năng cho việc hỗ trợ đa ngôn ngữ là tree-sitter.6 tree-sitter là một trình tạo bộ phân tích cú pháp và thư viện phân tích cú pháp tăng cường. Nó có thể xây dựng cây cú pháp cụ thể cho một tệp nguồn và cập nhật cây cú pháp một cách hiệu quả khi tệp nguồn được chỉnh sửa. tree-sitter yêu cầu định nghĩa ngữ pháp cho mỗi ngôn ngữ nhưng cung cấp một cách tiếp cận thống nhất hơn nếu hỗ trợ đa ngôn ngữ là mục tiêu trung hoặc dài hạn quan trọng.  
+  * Việc lựa chọn bộ phân tích cú pháp là một quyết định nền tảng. ast là một module tích hợp sẵn cho Python và rất hiệu quả cho ngôn ngữ này. Tuy nhiên, nếu kho chứa chứa mã JavaScript, ast sẽ không hoạt động. cased/kit sử dụng tree-sitter để trích xuất biểu tượng đa ngôn ngữ.6 Do đó, PDR này khuyến nghị một sự tập trung ban đầu vào Python sử dụng ast, nhưng kiến trúc nên trừu tượng hóa cơ chế phân tích cú pháp để cho phép cắm các bộ phân tích cú pháp khác (như các bộ dựa trên tree-sitter) vào sau này. Điều này cũng ảnh hưởng đến thiết kế của các tác tử AI.
+
+#### **3\. Phân tích Cú pháp và Duyệt AST**
+
+Đối với mã nguồn Python, module ast sẽ được sử dụng để chuyển đổi mã nguồn thành một AST.4 AST này sau đó sẽ được duyệt để trích xuất thông tin.
+
+* **Duyệt AST:** Các lớp như ast.NodeVisitor hoặc hàm ast.walk sẽ được sử dụng để duyệt qua các nút trong AST.4 ast.NodeVisitor cho phép định nghĩa các phương thức visit\_NodeType cụ thể để xử lý từng loại nút (ví dụ: visit\_FunctionDef, visit\_ClassDef).
+
+#### **4\. Trích xuất Thông tin**
+
+Trong quá trình duyệt AST, các thông tin sau sẽ được trích xuất:
+
+* **Hàm/Phương thức:** Tên, tham số (bao gồm kiểu dữ liệu và giá trị mặc định nếu có), kiểu trả về (nếu có), docstrings, và phần thân hàm/phương thức. Các công cụ refactoring như "Extract Method" trong VS Code minh họa tầm quan trọng của việc hiểu rõ cấu trúc hàm.7 Thư viện python-code-parse là một ví dụ về việc sử dụng ast để lấy thông tin hàm.9  
+* **Lớp:** Tên, các lớp cha, các phương thức (bao gồm cả phương thức khởi tạo \_\_init\_\_), các thuộc tính của lớp và instance, docstrings.  
+* **Module:** Các câu lệnh import, các hàm và lớp ở cấp độ cao nhất.  
+* **Bình luận:** Trích xuất các bình luận inline và liên kết chúng với các cấu trúc mã nguồn gần đó.  
+* **Phụ thuộc:** Phân tích các câu lệnh import để xác định các phụ thuộc nội bộ (giữa các module trong dự án) và các phụ thuộc bên ngoài (thư viện của bên thứ ba). Mặc dù có các công cụ phân tích phụ thuộc chuyên dụng 10, ở giai đoạn đầu, việc phân tích dựa trên câu lệnh import là đủ để tạo sơ đồ phụ thuộc cơ bản.
+
+#### **5\. Phân đoạn Mã nguồn (Chunking) cho RAG**
+
+Để RAG hoạt động hiệu quả, mã nguồn cần được chia thành các đoạn (chunk) nhỏ hơn, có ý nghĩa ngữ nghĩa.
+
+* **Chiến lược Phân đoạn:** Ưu tiên phân đoạn ở cấp độ hàm/phương thức và lớp. Điều này giúp duy trì sự mạch lạc về ngữ nghĩa của từng đoạn. Việc nhúng toàn bộ tệp có thể quá rộng đối với RAG; phân đoạn theo các đơn vị logic (hàm, lớp) cung cấp ngữ cảnh tập trung hơn cho LLM.12  
+* Mỗi đoạn sẽ bao gồm:  
+  * Mã nguồn thực tế của hàm/lớp.  
+  * Docstring của nó (nếu có).  
+  * Bình luận liên quan.  
+  * Metadata liên quan (xem mục tiếp theo).
+
+#### **6\. Metadata cho các Đoạn mã**
+
+Mỗi đoạn mã được tạo ra sẽ đi kèm với một bộ metadata phong phú để hỗ trợ quá trình truy xuất và cung cấp ngữ cảnh cho LLM.
+
+* **Thông tin cơ bản:** Đường dẫn tệp, số dòng bắt đầu/kết thúc của đoạn mã, loại đoạn mã (ví dụ: "function", "class", "method", "code\_block"), ngôn ngữ lập trình. Việc bao gồm đường dẫn tệp và tên trong metadata là rất quan trọng.12  
+* **Nội dung văn bản:** Docstrings gốc, các bình luận đã được trích xuất.  
+* **Thông tin cấu trúc:** Tên hàm/lớp/phương thức, tên lớp chứa (nếu là phương thức), các tham số (cho hàm/phương thức).  
+* **Phụ thuộc cục bộ:** Danh sách các module hoặc biểu tượng được import và sử dụng trong phạm vi đoạn mã đó. Metadata phong phú cho phép truy xuất chính xác hơn và giúp hệ thống RAG cung cấp ngữ cảnh tốt hơn cho LLM. Ví dụ, có thể lọc tìm kiếm theo đường dẫn tệp hoặc theo loại "is\_function".14
+
+### **C. Hệ thống Đa Tác tử (LangGraph)**
+
+AutoDoc AI sẽ sử dụng LangGraph để xây dựng và điều phối một hệ thống gồm nhiều tác tử AI, mỗi tác tử chuyên trách một nhiệm vụ cụ thể trong quy trình tạo tài liệu. LangGraph được chọn vì khả năng kiểm soát, tính linh hoạt và hỗ trợ streaming tốt.16 Các ví dụ về LangGraph trong phân tích mã nguồn và quản lý trạng thái cho thấy sự phù hợp của nó.18
+
+#### **1\. Định nghĩa và Vai trò của các Tác tử**
+
+Dưới đây là danh sách các tác tử AI chính và vai trò của chúng:
+
+| Tên Tác tử | Mô tả/Mục đích | Đầu vào Chính | Đầu ra Chính | Tương tác Với (Tác tử khác/Dịch vụ) | Loại Node LangGraph Cốt lõi |
+| :---- | :---- | :---- | :---- | :---- | :---- |
+| RepoClonerAgent | Nhân bản kho chứa GitHub về máy cục bộ. | URL kho GitHub, GitHub PAT (tùy chọn). | Đường dẫn đến kho chứa đã nhân bản trên máy cục bộ. | GitHub | Function Node |
+| CodeParserAgent | Phân tích cú pháp tệp mã nguồn, trích xuất cấu trúc, đoạn mã và metadata. | Đường dẫn tệp mã nguồn. | Dữ liệu có cấu trúc (thông tin từ AST, các đoạn mã, metadata). | \- | Function Node |
+| SummarizerAgent | Tạo tóm tắt ngắn gọn cho các đoạn mã, hàm, lớp hoặc toàn bộ tệp. | Đoạn mã, docstring hiện có (nếu có), metadata. | Tóm tắt bằng tiếng Anh và tiếng Việt. | OpenRouter (LLM) | Function Node |
+| DocstringEnhancerAgent | Tạo hoặc cải thiện docstrings cho các đoạn mã thiếu hoặc có docstring sơ sài. | Đoạn mã, metadata. | Docstring được tạo/cải thiện bằng tiếng Anh và tiếng Việt. | OpenRouter (LLM) | Function Node |
+| MermaidDiagramAgent | Tạo cú pháp Mermaid.js cho các sơ đồ dựa trên dữ liệu phụ thuộc hoặc logic luồng điều khiển. | Dữ liệu phụ thuộc (từ CodeParserAgent), mô tả logic luồng (từ LLM). | Chuỗi cú pháp Mermaid.js. | OpenRouter (LLM, tùy chọn cho phân tích luồng) | Function Node |
+| RAGQueryAgent | Trả lời các câu hỏi hoặc tìm kiếm thông tin liên quan đến mã nguồn bằng cách sử dụng RAG. | Câu hỏi/Chủ đề từ người dùng (hoặc từ tác tử khác), trạng thái kho chứa đã xử lý. | Câu trả lời/Thông tin liên quan bằng ngôn ngữ tự nhiên, các đoạn mã nguồn liên quan. | Qdrant, OpenRouter (LLM) | Function Node |
+| TranslationAgent | Dịch văn bản (ví dụ: tóm tắt, giải thích) từ tiếng Anh sang tiếng Việt (nếu LLM chính không sinh song ngữ). | Văn bản tiếng Anh. | Văn bản tiếng Việt. | OpenRouter (LLM chuyên dịch) | Function Node |
+| DocusaurusFormatterAgent | Tập hợp các tóm tắt, sơ đồ, đoạn mã, và kết quả RAG để tạo thành các tệp Markdown tương thích Docusaurus. | Tóm tắt, cú pháp Mermaid, đoạn mã, kết quả RAG, cấu trúc thư mục. | Các tệp Markdown (.md/.mdx) và tệp cấu hình (\_category\_.json) cho Docusaurus, bao gồm cả phiên bản EN & VI. | \- | Function Node |
+| OrchestratorAgent | (Supervisor) Điều phối toàn bộ quy trình làm việc, gọi các tác tử khác, xử lý chuyển đổi trạng thái và lỗi. | Yêu cầu ban đầu (URL kho chứa, cấu hình). | Trạng thái cuối cùng của quy trình (thành công/thất bại), đường dẫn đến tài liệu đã tạo. | Tất cả các tác tử khác, SendGrid | Graph (StateGraph) |
+
+Việc xác định rõ ràng vai trò và trách nhiệm là rất quan trọng đối  
+với một hệ thống đa tác tử phức tạp. OrchestratorAgent (hoặc Supervisor) đóng vai trò then chốt trong việc quản lý sự phức tạp này, tương tự như các mẫu supervisor được thảo luận trong các tài liệu về hệ thống đa tác tử LangGraph.20
+
+#### **2\. Quản lý Trạng thái trong LangGraph**
+
+LangGraph cung cấp các cơ chế mạnh mẽ để quản lý trạng thái của quy trình làm việc.
+
+* **Lược đồ StateGraph:** Một lược đồ trạng thái (StateGraph schema) sẽ được định nghĩa để lưu trữ tất cả dữ liệu cần thiết trong suốt quá trình xử lý. Dữ liệu này bao gồm URL kho chứa, đường dẫn tệp, dữ liệu mã nguồn đã phân tích, các tóm tắt, bản dịch, sơ đồ và cuối cùng là Markdown đã tạo.19  
+* **Tính bền vững (Persistence):** Các tính năng bền vững của LangGraph, như SQLiteSaver hoặc PostgresSaver (nếu cần mở rộng quy mô), sẽ được sử dụng để lưu các điểm kiểm tra (checkpoints). Điều này cho phép quy trình có thể được tạm dừng và tiếp tục, hoặc phục hồi sau lỗi mà không mất toàn bộ tiến trình đã thực hiện.19
+
+#### **3\. Giao tiếp và Luồng Điều phối**
+
+* **Nodes và Edges:** Trong LangGraph, các "nodes" (nút) sẽ đại diện cho các tác tử hoặc các bước xử lý cụ thể. Các "edges" (cạnh) sẽ xác định trình tự thực hiện các hoạt động.  
+* **Conditional Edges:** Các cạnh điều kiện sẽ được sử dụng để định tuyến logic. Ví dụ, nếu một đoạn mã đã có docstring chất lượng, hệ thống có thể bỏ qua DocstringEnhancerAgent cho đoạn mã đó.19  
+* **Thực thi Song song:** Các tác vụ có thể được thực thi song song khi có thể (ví dụ: phân tích nhiều tệp cùng một lúc) nếu LangGraph hỗ trợ hoặc được điều phối bên ngoài để tăng hiệu suất.22
+
+#### **4\. Xử lý Lỗi và Thử lại trong các Tác tử**
+
+* **Cơ chế Thử lại (Retry):** Triển khai cơ chế thử lại cho các lệnh gọi API đến các dịch vụ bên ngoài như OpenRouter và SendGrid, đặc biệt đối với các lỗi tạm thời (ví dụ: lỗi mạng, quá tải dịch vụ).  
+* **Chiến lược Dự phòng (Fallback):** Xác định các chiến lược dự phòng nếu một tác tử không thành công sau nhiều lần thử lại. Ví dụ, nếu SummarizerAgent thất bại, hệ thống có thể sử dụng docstring hiện có (nếu có) hoặc một thông báo lỗi giữ chỗ.
+
+### **D. Mô-đun Sinh Truy xuất Tăng cường (RAG)**
+
+Mô-đun RAG sẽ cho phép người dùng (hoặc các tác tử AI khác) đặt câu hỏi bằng ngôn ngữ tự nhiên về mã nguồn và nhận được câu trả lời dựa trên ngữ cảnh từ chính mã nguồn đó.
+
+#### **1\. Lựa chọn Mô hình Embedding**
+
+* **Sử dụng OpenRouter:** Tận dụng OpenRouter để truy cập vào nhiều mô hình embedding khác nhau. Ưu tiên các mô hình có hiệu suất tốt trên dữ liệu mã nguồn. Một số mô hình đáng chú ý cho mã nguồn bao gồm VoyageCode, các mô hình text-embedding-3 của OpenAI, Jina Code Embeddings, và Nomic Embed Code.24 OpenAI cũng đề cập text-embedding-3-small cho tìm kiếm mã nguồn.25  
+* **Cấu hình Linh hoạt:** Lựa chọn mô hình embedding sẽ có thể được cấu hình thông qua biến môi trường, cho phép người dùng thử nghiệm và chọn mô hình phù hợp nhất với nhu cầu và ngân sách của họ. Chất lượng của các vector embedding là yếu tố tối quan trọng đối với hiệu suất của RAG. Khả năng chuyển đổi mô hình thông qua OpenRouter cho phép thử nghiệm và thích ứng khi các mô hình embedding mã nguồn mới và tốt hơn xuất hiện.18
+
+#### **2\. Thiết lập Cơ sở dữ liệu Vector Qdrant**
+
+* **Triển khai:** Ban đầu, một instance Qdrant chạy trên Docker cục bộ sẽ được sử dụng cho mục đích phát triển và kiểm thử. Cần xem xét các tùy chọn triển khai trên đám mây (ví dụ: Qdrant Cloud) cho phiên bản sản phẩm hoặc khi cần mở rộng quy mô.23  
+* **Cấu hình Collection:**  
+  * Tên collection: Ví dụ: AutoDoc\_repository\_chunks.  
+  * Kích thước vector: Phụ thuộc vào mô hình embedding được chọn (ví dụ: text-embedding-3-small của OpenAI có 1536 chiều 25).  
+  * Chỉ số khoảng cách: Cosine Similarity thường được ưa chuộng cho các tác vụ tìm kiếm ngữ nghĩa văn bản và mã nguồn.  
+  * Đoạn mã sau minh họa cách tạo collection với cấu hình vector trong Qdrant 30:  
+    Python  
+    client.create\_collection(  
+        collection\_name="ten\_collection\_demo",  
+        vectors\_config=VectorParams(size=3072, distance=Distance.COSINE),  
+    )
+
+* **Lập chỉ mục (Indexing):** Sử dụng HNSW (Hierarchical Navigable Small World) cho tìm kiếm láng giềng gần đúng (ANN). Các tham số m (số cạnh tối đa cho mỗi nút) và ef\_construct (phạm vi xây dựng chỉ mục) cần được cấu hình để cân bằng giữa tốc độ tìm kiếm và độ chính xác.31 Ví dụ cấu hình HNSW 31:  
+  Python  
+  client.update\_collection(  
+      collection\_name="{collection\_name}",  
+      vectors\_config={  
+          "my\_vector": models.VectorParamsDiff(  
+              hnsw\_config=models.HnswConfigDiff(  
+                  m=32, \# Số cạnh mỗi nút  
+                  ef\_construct=123, \# Phạm vi xây dựng chỉ mục  
+              ),  
+          ),  
+      }  
+  )
+
+Dưới đây là lược đồ đề xuất cho collection Qdrant chứa các đoạn mã:
+
+**Bảng: Lược đồ Collection Qdrant cho các Đoạn Mã**
+
+| Tên Trường | Kiểu Dữ liệu | Mô tả | Được Lập Chỉ mục (Metadata) |
+| :---- | :---- | :---- | :---- |
+| id | UUID (Chuỗi) | Định danh duy nhất cho mỗi đoạn mã. | Có (Primary Key) |
+| vector | Mảng float (ví dụ: 1536 chiều) | Vector embedding của text\_content. | Có (HNSW) |
+| text\_content | Chuỗi | Nội dung mã nguồn thực tế của đoạn. | Không (Nội dung gốc) |
+| file\_path | Chuỗi | Đường dẫn tương đối của tệp chứa đoạn mã trong kho chứa. | Có |
+| start\_line | Số nguyên | Số dòng bắt đầu của đoạn mã trong tệp gốc. | Có |
+| end\_line | Số nguyên | Số dòng kết thúc của đoạn mã trong tệp gốc. | Có |
+| symbol\_name | Chuỗi (tùy chọn) | Tên của hàm, lớp, hoặc phương thức nếu đoạn mã đại diện cho một biểu tượng cụ thể. | Có |
+| symbol\_type | Chuỗi (enum: "function", "class", "method") | Loại biểu tượng mà đoạn mã đại diện. | Có |
+| language | Chuỗi | Ngôn ngữ lập trình của đoạn mã (ví dụ: "python"). | Có |
+| original\_docstring | Chuỗi (tùy chọn) | Docstring gốc được trích xuất từ mã nguồn. | Không |
+| ai\_summary\_en | Chuỗi (tùy chọn) | Tóm tắt bằng tiếng Anh do AI tạo ra. | Không |
+| ai\_summary\_vi | Chuỗi (tùy chọn) | Tóm tắt bằng tiếng Việt do AI tạo ra. | Không |
+| repo\_url | Chuỗi | URL của kho chứa GitHub gốc. | Có |
+
+Việc xác định rõ ràng lược đồ này là rất quan trọng cho các nhà phát triển triển khai logic lập chỉ mục và truy vấn, đồng thời giúp hiểu rõ loại tìm kiếm có điều kiện nào có thể được hỗ trợ.
+
+#### **3\. Quy trình Lập chỉ mục**
+
+1. CodeParserAgent sẽ tạo ra các đoạn mã và metadata của chúng.  
+2. Một IndexingAgent chuyên dụng (hoặc một bước trong RAGQueryAgent) sẽ thực hiện:  
+   * Tạo vector embedding cho mỗi text\_content của đoạn mã bằng mô hình đã chọn qua OpenRouter.  
+   * Lưu trữ vector và metadata liên quan (đường dẫn tệp, tên hàm/lớp, docstring gốc, ngôn ngữ, v.v.) vào collection Qdrant đã cấu hình.30 Payload trong Qdrant sẽ chứa các trường metadata này.
+
+#### **4\. Chiến lược Truy xuất**
+
+1. Các truy vấn của người dùng (ví dụ: "Hàm X hoạt động như thế nào?", "Các phụ thuộc của module Y là gì?") sẽ được nhúng (embedded) bằng cùng một mô hình embedding đã sử dụng để lập chỉ mục.  
+2. Thực hiện tìm kiếm tương tự (similarity search) trong Qdrant để tìm ra top-k đoạn mã có liên quan nhất.  
+3. Lọc metadata có thể được áp dụng để thu hẹp kết quả nếu cần (ví dụ: chỉ tìm kiếm trong một tệp cụ thể hoặc chỉ tìm các hàm).14  
+4. Các đoạn mã được truy xuất (bao gồm cả mã nguồn và metadata của chúng) sau đó được chuyển làm ngữ cảnh cho một LLM (thông qua RAGQueryAgent sử dụng OpenRouter) để tạo ra câu trả lời bằng ngôn ngữ tự nhiên hoặc một đoạn tài liệu. Kiến trúc RAG tổng quát được mô tả trong.13
+
+#### **5\. Xử lý các Truy vấn Đặc thù về Mã nguồn**
+
+Hệ thống RAG cần có khả năng trả lời các loại câu hỏi như:
+
+* "Giải thích hàm này." (Truy xuất đoạn mã của hàm, chuyển cho LLM để giải thích).  
+* "Tìm ví dụ về cách sử dụng lớp X." (Truy xuất các đoạn mã nơi lớp X được khởi tạo hoặc các phương thức của nó được gọi).  
+* "Thông báo lỗi này từ đoạn mã này có nghĩa là gì?" (Truy xuất đoạn mã, cung cấp thông báo lỗi làm ngữ cảnh cho LLM).
+
+### **E. Tạo Tài liệu Docusaurus**
+
+Sau khi mã nguồn được phân tích và làm giàu bởi các tác tử AI, DocusaurusFormatterAgent sẽ chịu trách nhiệm tạo ra các tệp tài liệu tương thích với Docusaurus.
+
+#### **1\. Cấu trúc Đầu ra**
+
+* **Phản ánh Cấu trúc Nguồn:** Cấu trúc thư mục của tài liệu được tạo ra sẽ cố gắng phản ánh cấu trúc thư mục của kho chứa mã nguồn gốc để dễ dàng đối chiếu.  
+* **Tệp \_category\_.json:** Đối với mỗi thư mục trong tài liệu, một tệp \_category\_.json sẽ được tạo để định nghĩa nhãn và vị trí của thư mục đó trong thanh bên (sidebar) của Docusaurus.  
+* **Tổ chức Trang:** Mỗi module hoặc tệp mã nguồn có thể tương ứng với một trang tài liệu. Các lớp và hàm lớn có thể được trình bày trong các mục riêng trên trang đó, hoặc thậm chí là các trang con riêng biệt nếu chúng đủ phức tạp. Kiến trúc của Docusaurus 33 và cách sử dụng CLI của nó 35 là cơ sở để định hình cấu trúc đầu ra này, đảm bảo Docusaurus có thể tiêu thụ và xây dựng trang web một cách chính xác. Một trang Docusaurus có cấu trúc tốt là chìa khóa cho khả năng điều hướng.
+
+#### **2\. Tạo Nội dung**
+
+DocusaurusFormatterAgent sẽ tập hợp nội dung Markdown bằng cách sử dụng:
+
+* Các tóm tắt và giải thích do AI tạo ra (từ SummarizerAgent và RAGQueryAgent).  
+* Docstrings và bình luận gốc được trích xuất từ mã nguồn.  
+* Các khối mã nguồn (code blocks) được tô sáng cú pháp phù hợp với ngôn ngữ.  
+* Cú pháp Mermaid.js cho các sơ đồ được nhúng trực tiếp vào Markdown.  
+* Các liên kết nội bộ giữa các trang tài liệu liên quan (ví dụ: từ một lời gọi hàm đến định nghĩa của hàm đó).
+
+#### **3\. Tích hợp Mermaid.js cho Sơ đồ**
+
+MermaidDiagramAgent sẽ tạo ra cú pháp Mermaid cho các loại sơ đồ sau:
+
+* **Sơ đồ Phụ thuộc:** Ở cấp độ module hoặc lớp, hiển thị mối quan hệ import/kế thừa.  
+* **Sơ đồ Luồng Cao cấp:** Đối với các hàm hoặc logic phức tạp, nếu có thể phân tích và trích xuất được thông qua AI. Cú pháp này sẽ được nhúng vào các tệp Markdown, và Docusaurus sẽ render chúng thành sơ đồ đồ họa nhờ vào sự hỗ trợ tích hợp sẵn hoặc plugin cho Mermaid.js.37 Việc cài đặt @docusaurus/theme-mermaid và cấu hình markdown: { mermaid: true } trong docusaurus.config.js là cần thiết.41 Sơ đồ trực quan giúp tăng cường đáng kể khả năng hiểu mã nguồn.
+
+#### **4\. Quốc tế hóa (i18n) cho Tiếng Anh và Tiếng Việt**
+
+* **Tạo Tệp Song ngữ:** DocusaurusFormatterAgent sẽ tạo ra hai bộ tệp Markdown: một bộ cho tiếng Anh (thường nằm trong thư mục docs/) và một bộ cho tiếng Việt (nằm trong i18n/vi/docusaurus-plugin-content-docs/current/ hoặc cấu trúc tương tự tùy theo phiên bản Docusaurus).42  
+* **Nội dung AI Song ngữ:** Nội dung do AI tạo ra (tóm tắt, giải thích) sẽ được sản xuất bằng cả hai ngôn ngữ. Điều này có thể được thực hiện trực tiếp bởi LLM chính (nếu nó có khả năng sinh song ngữ chất lượng cao cho nội dung kỹ thuật) hoặc thông qua một TranslationAgent chuyên dụng.  
+* **Dịch Giao diện Người dùng Docusaurus:** Các yếu tố giao diện người dùng của Docusaurus (như thanh điều hướng, chân trang) cũng cần các tệp dịch JSON tương ứng (ví dụ: i18n/vi/docusaurus-theme-classic/navbar.json, i18n/fr/code.json trong ví dụ của Docusaurus).42
+
+Chất lượng bản dịch tiếng Việt cho nội dung kỹ thuật cao do LLM tạo ra cần được đánh giá cẩn thận. Có thể cần một bước rà soát thủ công bởi con người đối với tài liệu tiếng Việt, hoặc ít nhất là một thước đo đánh giá chất lượng mạnh mẽ. Điều này có ý nghĩa đối với "Chiến lược Kiểm thử". Quyết định chiến lược tạo nội dung tiếng Việt là quan trọng:
+
+1. LLM tạo trực tiếp bằng cả tiếng Anh và tiếng Việt: Phụ thuộc vào khả năng đa ngôn ngữ của LLM được chọn cho việc tóm tắt kỹ thuật.  
+2. LLM tạo bằng tiếng Anh, sau đó một TranslationAgent (một lệnh gọi LLM khác) dịch sang tiếng Việt: Điều này làm tăng chi phí và có thể làm giảm chất lượng do các sắc thái dịch thuật. Các thuật ngữ kỹ thuật trong lập trình thường có các bản dịch cụ thể, đôi khi không theo tiêu chuẩn, mà LLM có thể không phải lúc nào cũng dịch đúng sang tiếng Việt. Do đó, PDR này phải đề xuất một chiến lược cho việc tạo nội dung tiếng Việt và nhấn mạnh sự cần thiết của việc kiểm soát chất lượng, có khả năng liên quan đến việc rà soát của con người hoặc tinh chỉnh chuyên biệt nếu đầu ra trực tiếp của LLM không đủ. Điều này cũng có nghĩa là hệ thống RAG có thể cần phải nhận biết ngữ cảnh ngôn ngữ nếu các truy vấn có thể được đặt bằng tiếng Việt.
+
+### **F. Tích hợp Mô hình AI (OpenRouter API)**
+
+#### **1\. Mẫu Tương tác API**
+
+* **Thư viện hoặc HTTPS:** Sử dụng thư viện Python chính thức của OpenAI (được cấu hình cho điểm cuối OpenRouter) hoặc các yêu cầu HTTPS trực tiếp đến API OpenRouter.44  
+* **Quản lý Khóa API:** Khóa API OpenRouter (theo mô hình BYOK) sẽ được quản lý một cách an toàn thông qua các biến môi trường.45
+
+#### **2\. Quản lý BYOK (Bring Your Own Key)**
+
+* **Khóa API Người dùng:** Hệ thống sẽ sử dụng một khóa API OpenRouter duy nhất do người dùng cung cấp.46  
+* **Hướng dẫn Sử dụng:** Tài liệu của AutoDoc AI phải hướng dẫn rõ ràng cách người dùng lấy và cấu hình khóa OpenRouter của họ.  
+* **Chi phí:** Cần lưu ý đến khoản phí 5% của OpenRouter cho việc sử dụng BYOK khi ước tính chi phí vận hành cho người dùng.46
+
+#### **3\. Chiến lược Lựa chọn Mô hình**
+
+* **Cấu hình Linh hoạt:** Cho phép người dùng chỉ định các mô hình ưa thích cho các tác vụ khác nhau (ví dụ: tóm tắt, giải thích mã, dịch thuật) thông qua các biến môi trường.  
+* **Giá trị Mặc định:** Cung cấp các giá trị mặc định hợp lý nếu người dùng không chỉ định.  
+* **Mô hình Phù hợp:** Lựa chọn các mô hình phù hợp cho việc hiểu và sinh mã từ danh sách được OpenRouter hỗ trợ. Các mô hình như các biến thể GPT-4, Claude, và các mô hình mã nguồn chuyên biệt (nếu có qua OpenRouter) là những ứng cử viên tiềm năng.48 Một số mô hình embedding mã nguồn cụ thể được liệt kê trong 24 cũng có thể được truy cập qua OpenRouter cho các tác vụ sinh văn bản. Các LLM khác nhau có thế mạnh ở các tác vụ khác nhau. OpenRouter mang lại sự linh hoạt, và hệ thống nên tận dụng điều này bằng cách cho phép lựa chọn mô hình có thể cấu hình.
+
+#### **4\. Kỹ thuật Prompt (Prompt Engineering)**
+
+* **Prompt Mạnh mẽ:** Phát triển các prompt (câu lệnh đầu vào cho LLM) mạnh mẽ và chi tiết cho từng tác vụ của tác tử AI (tóm tắt, giải thích, trích xuất dữ liệu sơ đồ, Hỏi & Đáp RAG).  
+* **Nội dung Prompt:** Các prompt nên bao gồm hướng dẫn rõ ràng, ngữ cảnh đầy đủ (ví dụ: đoạn mã, ngôn ngữ lập trình), và định dạng đầu ra mong muốn (ví dụ: Markdown, cú pháp Mermaid).
+
+### **G. Dịch vụ Thông báo (SendGrid)**
+
+#### **1\. Tác nhân Kích hoạt Thông báo**
+
+* Hoàn thành thành công việc tạo tài liệu cho một kho chứa.  
+* Các lỗi nghiêm trọng xảy ra trong quá trình xử lý (ví dụ: lỗi truy cập kho chứa, lỗi API của AI sau nhiều lần thử lại, lỗi xây dựng Docusaurus).
+
+#### **2\. Nội dung Email**
+
+* **Thành công:** Liên kết đến trang Docusaurus đã tạo (nếu được triển khai) hoặc thư mục đầu ra, tóm tắt các tệp đã xử lý.  
+* **Lỗi:** Thông báo lỗi chi tiết, URL kho chứa, dấu thời gian.
+
+#### **3\. Tích hợp API**
+
+* **Thư viện Python:** Sử dụng thư viện Python của SendGrid.50  
+* **Cấu hình:** Cấu hình khóa API SendGrid và email người gửi/người nhận thông qua các biến môi trường.45
+
+Thông báo qua SendGrid rất hữu ích, nhưng đối với một công cụ mã nguồn mở, người dùng không phải lúc nào cũng có sẵn hoặc muốn cấu hình SendGrid. Hệ thống nên hoạt động một cách bình thường ngay cả khi SendGrid không được cấu hình. Nếu thiếu cấu hình SendGrid, công cụ nên ghi log một cảnh báo nhưng không ngăn cản chức năng tạo tài liệu cốt lõi. Điều này làm cho công cụ dễ tiếp cận và sử dụng hơn.
+
+## **IV. Ngăn xếp Công nghệ (Technology Stack)**
+
+### **A. Ngôn ngữ Lập trình**
+
+* **Python (Chính):** Do sự phong phú của các thư viện AI/ML, dễ sử dụng và cộng đồng lớn.
+
+### **B. Thư viện/Framework Cốt lõi**
+
+* **LangGraph:** Để điều phối các tác tử AI.  
+* **Qdrant-client:** Để tương tác với cơ sở dữ liệu vector Qdrant.  
+* **OpenAI (thư viện Python, hoặc requests/aiohttp):** Để thực hiện các lệnh gọi API đến OpenRouter.  
+* **SendGrid (thư viện Python):** Để gửi thông báo qua email.  
+* **Docusaurus (Mục tiêu tạo):** Công cụ tạo ra các tệp cho Docusaurus.  
+* **Module ast của Python:** Để phân tích cú pháp mã nguồn Python.  
+* **python-dotenv:** Để quản lý các biến môi trường.45  
+* **GitPython (hoặc subprocess cho Git CLI):** Để thực hiện các thao tác Git.
+
+### **C. Kho chứa Dữ liệu**
+
+* **Qdrant:** Cơ sở dữ liệu vector.  
+* Hệ thống tệp cục bộ: Để lưu trữ các kho chứa đã nhân bản và các tệp Markdown đã tạo.
+
+### **D. Công cụ Phát triển**
+
+* Git & GitHub  
+* Docker (cho Qdrant, và có thể để đóng gói ứng dụng)  
+* Pytest (để kiểm thử)
+
+**Bảng: Tóm tắt Ngăn xếp Công nghệ**
+
+| Thành phần/Mục đích | Công nghệ/Thư viện | Phiên bản (Nếu cụ thể) | Lý do/Vai trò |
+| :---- | :---- | :---- | :---- |
+| Điều phối AI | LangGraph | Mới nhất | Xây dựng và quản lý các luồng tác tử AI phức tạp, trạng thái. |
+| Cơ sở dữ liệu Vector | Qdrant | Mới nhất | Lưu trữ và truy vấn hiệu quả các vector embedding mã nguồn cho RAG. |
+| Phân tích Cú pháp Python | Module ast của Python | Tích hợp sẵn | Phân tích mã nguồn Python thành AST để trích xuất cấu trúc. |
+| Tương tác API AI | Thư viện OpenAI (cấu hình cho OpenRouter) | Mới nhất | Giao tiếp với OpenRouter để truy cập các LLM cho tóm tắt, sinh mã, dịch thuật. |
+| Thông báo Email | Thư viện SendGrid Python | Mới nhất | Gửi thông báo về trạng thái xử lý. |
+| Quản lý Biến môi trường | python-dotenv | Mới nhất | Tải các biến môi trường từ tệp .env trong quá trình phát triển cục bộ. |
+| Thao tác Git | GitPython hoặc subprocess | Mới nhất | Nhân bản và tương tác với các kho chứa Git. |
+| Định dạng Tài liệu Đầu ra | (Mục tiêu là) Docusaurus | Mới nhất | Công cụ tạo ra các tệp Markdown và cấu trúc thư mục tương thích với Docusaurus. |
+| Đóng gói và Môi trường | Docker | Mới nhất | Đảm bảo môi trường chạy nhất quán, dễ dàng triển khai Qdrant và ứng dụng. |
+| Kiểm thử | Pytest | Mới nhất | Viết và chạy các bài kiểm thử đơn vị, tích hợp và E2E. |
+
+Việc có một danh sách công nghệ rõ ràng và hợp nhất giúp mọi người hiểu được các khối xây dựng của dự án. Các lý giải củng cố lý do tại sao các lựa chọn cụ thể được đưa ra, điều này rất quan trọng đối với một PDR. Bảng này phục vụ như một tài liệu tham khảo nhanh về ngăn xếp công nghệ, hữu ích cho việc giới thiệu các nhà phát triển mới hoặc cho các đánh giá kiến trúc.
+
+## **V. Quản lý và Lưu trữ Dữ liệu**
+
+### **A. Mã nguồn**
+
+* Mã nguồn từ kho chứa GitHub sẽ được nhân bản tạm thời vào một không gian làm việc cục bộ có thể cấu hình.  
+* Sau khi xử lý, các tệp này sẽ được dọn dẹp để tiết kiệm dung lượng đĩa, trừ khi chế độ debug được bật để giữ lại chúng cho mục đích gỡ lỗi.
+
+### **B. Dữ liệu Trung gian**
+
+* **Cấu trúc Mã đã Phân tích:** Các AST, bảng biểu tượng và các cấu trúc dữ liệu khác được tạo ra từ quá trình phân tích mã nguồn sẽ được giữ trong bộ nhớ trong quá trình xử lý bởi các tác tử. Chúng có thể được tuần tự hóa tạm thời nếu cần thiết cho các luồng LangGraph phức tạp, có khả năng phục hồi.  
+* **Nội dung do AI Tạo ra:** Các tóm tắt, bản dịch, docstrings được cải thiện sẽ được lưu trữ như một phần của trạng thái LangGraph hoặc tạm thời trước khi được ghi vào các tệp Markdown cuối cùng.
+
+### **C. Vector Embeddings (Qdrant)**
+
+* Các đoạn mã (chunks) và vector embedding tương ứng của chúng sẽ được lưu trữ bền vững trong Qdrant.  
+* Metadata liên quan đến các vector (ví dụ: đường dẫn tệp, tên biểu tượng, ngôn ngữ) cũng sẽ được lưu trữ trong Qdrant dưới dạng payload của các điểm vector.
+
+### **D. Tài liệu được Tạo ra**
+
+* Các tệp Markdown (.md/.mdx) được tổ chức theo cấu trúc thư mục tương thích với Docusaurus.  
+* Các định nghĩa sơ đồ Mermaid.js được nhúng trực tiếp trong các tệp Markdown.  
+* Các tệp dịch JSON cho các yếu tố giao diện người dùng của Docusaurus (ví dụ: thanh điều hướng, chân trang) cho các ngôn ngữ được hỗ trợ.
+
+### **E. Dữ liệu Cấu hình**
+
+* Toàn bộ cấu hình của ứng dụng sẽ được quản lý thông qua các biến môi trường.45 Sẽ không có cơ sở dữ liệu trong ứng dụng dành riêng cho việc lưu trữ cấu hình. Điều này đảm bảo tính linh hoạt và tuân thủ các thực tiễn tốt nhất về "Twelve-Factor App".
+
+## **VI. Chiến lược Kiểm thử**
+
+Một chiến lược kiểm thử toàn diện là rất quan trọng để đảm bảo chất lượng, độ tin cậy và tính đúng đắn của AutoDoc AI.
+
+### **A. Kiểm thử Đơn vị (Unit Testing)**
+
+* **Mục tiêu:** Kiểm tra các hàm và lớp riêng lẻ trong mỗi module (ví dụ: các hàm phân tích mã nguồn, logic tương tác Qdrant, các hàm tiện ích của tác tử).  
+* **Kỹ thuật:** Sử dụng Pytest. Mock các phụ thuộc bên ngoài như GitHub API, OpenRouter, SendGrid, và Qdrant khi thích hợp để cô lập đơn vị đang được kiểm thử.
+
+### **B. Kiểm thử Tích hợp (Integration Testing)**
+
+* **Mục tiêu:** Kiểm tra sự tương tác giữa các thành phần khác nhau của hệ thống.  
+* **Kịch bản:**  
+  * Kiểm tra luồng dữ liệu từ đầu ra của Engine Phân tích Mã nguồn đến đầu vào của các tác tử LangGraph.  
+  * Kiểm tra các quy trình làm việc của tác tử LangGraph với các phản hồi AI giả lập (mocked AI responses) để xác minh các chuyển đổi trạng thái và logic điều kiện.  
+  * Kiểm tra toàn bộ quy trình RAG: nhúng (embedding) \-\> lưu trữ Qdrant \-\> truy xuất \-\> cung cấp ngữ cảnh cho LLM.
+
+### **C. Kiểm thử Đầu cuối (End-to-End \- E2E)**
+
+* **Mục tiêu:** Kiểm tra toàn bộ hệ thống từ đầu vào (URL kho GitHub) đến đầu ra (tài liệu Docusaurus).  
+* **Kịch bản:**  
+  * Xử lý các kho chứa GitHub nhỏ, có tính đại diện (ví dụ: một kho chứa Python đơn giản, một kho chứa có cấu trúc phức tạp hơn một chút).  
+  * Xác minh:  
+    * Nhân bản và phân tích cú pháp thành công.  
+    * Trích xuất thông tin chính xác (tên hàm, lớp, docstrings).  
+    * Tạo các tệp Docusaurus theo cấu trúc và ngôn ngữ mong đợi (EN/VI).  
+    * Độ chính xác của các tóm tắt và giải thích do AI tạo ra (yêu cầu đánh giá thủ công dựa trên mẫu hoặc so sánh với "tiêu chuẩn vàng" nếu có).  
+    * Render chính xác các sơ đồ Mermaid trong một bản dựng Docusaurus cục bộ.  
+    * Gửi thông báo SendGrid thành công (với một thiết lập SendGrid thử nghiệm).
+
+### **D. Kiểm thử Đặc thù cho Tài liệu**
+
+Việc kiểm thử một công cụ tạo tài liệu không chỉ bao gồm kiểm thử phần mềm mà còn cả chất lượng và tính đúng đắn của đầu ra của nó.
+
+* **Độ chính xác Nội dung:** Xác thực rằng tài liệu được tạo ra phản ánh chính xác chức năng của mã nguồn. Điều này có thể liên quan đến việc đánh giá thủ công một số phần quan trọng.  
+* **Tính đầy đủ:** Đảm bảo tất cả các yếu tố mã nguồn liên quan (có thể cấu hình, ví dụ: các hàm/lớp công khai) đều được ghi lại.  
+* **Tính toàn vẹn Liên kết:** Kiểm tra xem các liên kết nội bộ trong trang Docusaurus có hợp lệ không.  
+* **Tính đúng đắn Định dạng:** Đảm bảo Markdown được định dạng tốt và Docusaurus xây dựng thành công mà không có lỗi.  
+* **Tính đúng đắn Ngôn ngữ:** Đối với cả tiếng Anh và tiếng Việt, đánh giá sự rõ ràng và đúng ngữ pháp. Như đã đề cập trước đó, đầu ra tiếng Việt có thể yêu cầu sự xem xét kỹ lưỡng hơn. Các nguyên tắc chung về kiểm thử tài liệu như sự rõ ràng, thông tin thiết yếu, và cập nhật thường xuyên (nếu bản thân công cụ phát triển) cũng áp dụng cho việc kiểm thử *đầu ra* của trình tạo tài liệu của chúng ta.53
+
+### **E. Kiểm thử Hiệu năng và Khả năng Mở rộng**
+
+* **Mục tiêu:** Đánh giá hiệu suất của hệ thống dưới các tải trọng khác nhau.  
+* **Kịch bản:**  
+  * Đo thời gian xử lý cho các kho chứa có kích thước khác nhau (số lượng tệp, dòng mã).  
+  * Đánh giá hiệu suất lập chỉ mục và truy vấn của Qdrant khi số lượng vector tăng lên.  
+  * Theo dõi việc sử dụng tài nguyên (CPU, bộ nhớ, mạng) trong quá trình xử lý.
+
+### **F. Kiểm thử Bảo mật (Cơ bản)**
+
+* **Mục tiêu:** Đảm bảo các khía cạnh bảo mật cơ bản được xử lý đúng cách.  
+* **Kịch bản:**  
+  * Đảm bảo các khóa API và cấu hình nhạy cảm không bị mã hóa cứng (hardcoded) hoặc ghi log.  
+  * Xem xét việc xử lý các đầu vào bên ngoài (ví dụ: URL kho GitHub) để tránh các lỗ hổng phổ biến.
+
+## **VII. Kế hoạch Xây dựng và Triển khai**
+
+### **A. Quy trình Xây dựng (Build Process)**
+
+* **Đóng gói Python:** Sử dụng các tiêu chuẩn đóng gói Python hiện đại (ví dụ: pyproject.toml với Poetry hoặc Hatch) để quản lý phụ thuộc và xây dựng gói.  
+* **Chất lượng Mã:** Tích hợp các công cụ kiểm tra mã tĩnh (linters) như Flake8, công cụ định dạng mã như Black, và công cụ kiểm tra kiểu tĩnh như MyPy vào quy trình Tích hợp Liên tục (CI).  
+* **Kiểm thử Tự động:** Tự động thực thi các bài kiểm thử đơn vị và tích hợp trong CI (ví dụ: sử dụng GitHub Actions).
+
+### **B. Đóng gói Container (Khuyến nghị)**
+
+* **Dockerfile:** Cung cấp một Dockerfile để đóng gói ứng dụng AutoDoc AI và tất cả các phụ thuộc của nó.  
+* **Lợi ích:** Điều này đơn giản hóa việc triển khai cho người dùng cuối và đảm bảo một môi trường chạy nhất quán. Image Docker có thể bao gồm Git và bất kỳ công cụ CLI cần thiết nào khác.
+
+### **C. Kịch bản Triển khai Tiềm năng (cho người dùng công cụ)**
+
+* **Chạy Cục bộ qua CLI:** Người dùng có thể cài đặt và chạy công cụ trực tiếp từ dòng lệnh trên máy của họ.  
+* **Triển khai dưới dạng Dịch vụ Container hóa:** Công cụ có thể được triển khai dưới dạng một dịch vụ container hóa (ví dụ: trên một máy chủ, Kubernetes) cho các trường hợp sử dụng quy mô lớn hơn hoặc tích hợp vào các hệ thống tự động hóa.  
+* **Chức năng Serverless (Xem xét Tương lai):** Có khả năng được điều chỉnh thành một chức năng serverless để xử lý theo yêu cầu các kho chứa nhỏ hơn.
+
+### **D. Triển khai Trang Docusaurus**
+
+* **Đầu ra của Công cụ:** AutoDoc AI tạo ra các tệp nguồn Docusaurus.  
+* **Trách nhiệm Người dùng:** Người dùng sẽ chịu trách nhiệm xây dựng và triển khai trang Docusaurus của họ bằng cách sử dụng các lệnh CLI tiêu chuẩn của Docusaurus (ví dụ: docusaurus build 35) và lưu trữ trên các nền tảng như GitHub Pages, Netlify, Vercel, v.v.  
+* **Tùy chọn Hỗ trợ:** Công cụ có thể tùy chọn bao gồm một script để chạy lệnh docusaurus build trên đầu ra đã tạo để thuận tiện cho người dùng.
+
+## **VIII. Chiến lược Mã nguồn mở**
+
+### **A. Giấy phép Đề xuất**
+
+* **Lựa chọn:** Giấy phép MIT hoặc Giấy phép Apache 2.0.  
+* **Lý do:** Cả hai đều là giấy phép permisive (cho phép), được sử dụng rộng rãi và được OSI phê duyệt.55 Giấy phép MIT đặc biệt phổ biến (\#1) và có rủi ro thấp, tính tương thích cao.55 Giấy phép Apache 2.0 cũng tương tự, cho phép sử dụng, sửa đổi, phân phối và bán phần mềm một cách tự do, đồng thời cấp quyền rõ ràng cho cả bản quyền và bằng sáng chế.56  
+* **Khuyến nghị:** Giấy phép MIT được khuyến nghị do tính đơn giản và phổ biến tối đa của nó, tạo điều kiện thuận lợi cho việc áp dụng và đóng góp. Một giấy phép permisive khuyến khích sự chấp nhận và đóng góp từ cộng đồng.
+
+### **B. Hướng dẫn Đóng góp (CONTRIBUTING.md)**
+
+* **Nội dung:** Dựa trên các mẫu và thực tiễn tốt nhất.57  
+* Sẽ bao gồm:  
+  * Cách thiết lập môi trường phát triển.  
+  * Tiêu chuẩn mã hóa (ví dụ: sử dụng Black, Flake8).  
+  * Cách chạy kiểm thử.  
+  * Quy trình gửi Pull Request (PR).  
+  * Quy tắc Ứng xử (Code of Conduct), tham chiếu đến một quy tắc tiêu chuẩn như Contributor Covenant.  
+  * Các loại đóng góp được hoan nghênh (mã nguồn, tài liệu, báo lỗi, yêu cầu tính năng).57 Hướng dẫn đóng góp rõ ràng là điều cần thiết cho một dự án mã nguồn mở lành mạnh.
+
+### **C. Cấu trúc Kho chứa**
+
+* **Bố cục Tiêu chuẩn:** Theo bố cục dự án Python tiêu chuẩn.  
+* **Các Tệp Chính:**  
+  * README.md: Tổng quan dự án, tính năng, hướng dẫn cài đặt, cách sử dụng, liên kết đến tài liệu đầy đủ (sau khi được tạo bởi chính công cụ, có thể trên một kho chứa demo).  
+  * LICENSE: Tệp giấy phép (ví dụ: MIT).  
+  * docs/ hoặc site/: Dành cho tài liệu của chính công cụ AutoDoc AI (có khả năng được tạo bởi một phiên bản sớm của chính nó \- "dogfooding").  
+  * src/ hoặc AutoDoc\_ai/: Thư mục chứa mã nguồn của ứng dụng.  
+  * tests/: Chứa các bài kiểm thử đơn vị và tích hợp.  
+  * .github/: Chứa các mẫu issue, mẫu PR, và các tệp quy trình làm việc CI (ví dụ: GitHub Actions). Cấu trúc kho chứa thông thường giúp người đóng góp dễ dàng điều hướng và hiểu dự án.59
+
+### **D. Theo dõi Vấn đề (Issue Tracking)**
+
+* **Nền tảng:** Sử dụng GitHub Issues.  
+* **Nhãn (Labels):** Xác định các nhãn cho lỗi (bugs), tính năng mới (features), tài liệu (documentation), cần trợ giúp (help wanted), vấn đề tốt cho người mới bắt đầu (good first issue).59
+
+### **E. Tương tác Cộng đồng**
+
+* **Kênh:** Xem xét sử dụng GitHub Discussions cho Hỏi & Đáp và tương tác cộng đồng.
+
+## **IX. Quản lý Cấu hình**
+
+### **A. Biến Môi trường**
+
+Tất cả các cấu hình động và thông tin nhạy cảm sẽ được quản lý thông qua các biến môi trường, tuân theo các thực tiễn tốt nhất.45 Điều này giúp tách biệt cấu hình khỏi mã nguồn, tăng cường bảo mật và tính linh hoạt.
+
+**Bảng: Các Biến Môi trường Chính**
+
+| Tên Biến Môi trường | Mục đích/Mô tả | Ví dụ Giá trị/Định dạng | Bắt buộc (Có/Không) |
+| :---- | :---- | :---- | :---- |
+| GITHUB\_PAT | Personal Access Token của GitHub để truy cập các kho chứa riêng tư. | ghp\_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx | Không (Có nếu xử lý repo riêng tư) |
+| OPENROUTER\_API\_KEY | Khóa API OpenRouter của người dùng (mô hình BYOK). | sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx | Có |
+| QDRANT\_URL | URL của instance Qdrant. | http://localhost:6333 hoặc URL Qdrant Cloud | Có |
+| QDRANT\_API\_KEY | Khóa API cho Qdrant nếu được bảo mật. | your\_qdrant\_api\_key | Không (Có nếu Qdrant yêu cầu) |
+| SENDGRID\_API\_KEY | Khóa API SendGrid để gửi email thông báo. | SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxx | Không |
+| SENDGRID\_FROM\_EMAIL | Địa chỉ email người gửi cho thông báo SendGrid (phải được xác minh trên SendGrid). | noreply@example.com | Không (Có nếu dùng SendGrid) |
+| NOTIFICATION\_EMAIL\_TO | Địa chỉ email người nhận thông báo. | user@example.com | Không (Có nếu dùng SendGrid) |
+| TARGET\_REPO\_URL | URL của kho chứa GitHub cần tạo tài liệu (cũng có thể là đối số CLI). | https://github.com/user/repo | Có (Hoặc đối số CLI) |
+| OUTPUT\_DIR | Thư mục đầu ra cho các tệp Docusaurus được tạo. | ./docusaurus\_docs | Có |
+| OUTPUT\_LANGUAGES | Danh sách các ngôn ngữ cần tạo tài liệu, phân tách bằng dấu phẩy. | EN,VI | Có |
+| EMBEDDING\_MODEL\_NAME | Tên mô hình embedding ưa thích trên OpenRouter (ví dụ: openai/text-embedding-3-small). | openai/text-embedding-3-small | Không (Sử dụng mặc định) |
+| SUMMARIZER\_MODEL\_NAME | Tên mô hình LLM ưa thích trên OpenRouter cho việc tóm tắt (ví dụ: anthropic/claude-3-haiku). | anthropic/claude-3-haiku | Không (Sử dụng mặc định) |
+| TRANSLATION\_MODEL\_NAME | Tên mô hình LLM ưa thích trên OpenRouter cho việc dịch thuật (ví dụ: google/gemini-pro). | google/gemini-pro | Không (Sử dụng mặc định) |
+| LOG\_LEVEL | Cấp độ ghi log của ứng dụng (ví dụ: INFO, DEBUG). | INFO | Không (Mặc định là INFO) |
+| GIT\_EXECUTABLE\_PATH | Đường dẫn đến tệp thực thi Git nếu không nằm trong PATH hệ thống. | /usr/bin/git | Không (Nếu Git trong PATH) |
+
+Việc có một danh sách toàn diện các biến môi trường là rất cần thiết để người dùng thiết lập và chạy công cụ. Nó phục vụ như một tài liệu tham khảo cho các nhà phát triển và để tạo các kịch bản triển khai hoặc cấu hình Docker. Việc chỉ rõ biến nào là bắt buộc và biến nào là tùy chọn giúp cải thiện khả năng sử dụng.
+
+### **B. Xác thực Cấu hình**
+
+Ứng dụng AutoDoc AI nên xác thực các biến môi trường bắt buộc khi khởi động. Nếu bất kỳ biến nào bị thiếu hoặc có định dạng không hợp lệ, ứng dụng cần cung cấp thông báo lỗi rõ ràng và thoát một cách duyên dáng để tránh các lỗi không mong muốn trong quá trình chạy.45
+
+## **X. Những Vấn đề Cân nhắc trong Tương lai và Lộ trình Phát triển**
+
+### **A. Các Cải tiến Tiềm năng**
+
+1. **Hỗ trợ Thêm Ngôn ngữ Lập trình:** Mở rộng khả năng phân tích cho các ngôn ngữ phổ biến khác như JavaScript, Java, C\#, TypeScript bằng cách tích hợp tree-sitter hoặc các bộ phân tích cú pháp phù hợp khác.  
+2. **Tạo Sơ đồ Nâng cao hơn:**  
+   * Tạo sơ đồ trình tự (sequence diagrams) từ logic mã nguồn để minh họa các tương tác phức tạp.  
+   * Tạo sơ đồ kiến trúc tổng thể của dự án.  
+3. **Cập nhật Tài liệu Tăng cường:** Phát triển cơ chế chỉ xử lý lại các tệp đã thay đổi trong kho chứa thay vì xử lý lại toàn bộ mỗi lần, giúp tiết kiệm thời gian và tài nguyên.  
+4. **Tích hợp CI/CD:** Cung cấp khả năng tích hợp với các quy trình CI/CD (ví dụ: GitHub Actions) để tự động tạo hoặc cập nhật tài liệu mỗi khi có thay đổi mã nguồn được hợp nhất.  
+5. **Giao diện Người dùng Web (Web UI):** Phát triển một giao diện người dùng web đơn giản để người dùng dễ dàng cấu hình, kích hoạt việc tạo tài liệu và xem kết quả mà không cần sử dụng CLI.  
+6. **Kiểm soát Lựa chọn Mô hình AI Chi tiết hơn:** Cho phép người dùng chọn các mô hình AI khác nhau cho từng phần cụ thể của tài liệu hoặc cho các loại phân tích khác nhau.  
+7. **Tinh chỉnh RAG:** Cho phép "huấn luyện" hoặc tinh chỉnh mô hình RAG trên tài liệu hiện có của dự án (nếu có) để cải thiện độ chính xác theo ngữ cảnh của các câu trả lời.  
+8. **Phân tích Phụ thuộc Nâng cao:** Vượt ra ngoài các câu lệnh import đơn giản để hiểu rõ hơn về mối quan hệ giữa các thành phần trong các ngôn ngữ phức tạp.
+
+### **B. Các Khía cạnh về Khả năng Mở rộng**
+
+* **Xử lý Kho chứa Lớn:** Đối với các kho chứa mã nguồn rất lớn, cần xem xét các giải pháp xử lý tác vụ phân tán cho việc phân tích cú pháp và công việc của các tác tử AI để giảm thời gian xử lý tổng thể.  
+* **Khả năng Mở rộng của Qdrant:** Đánh giá và tận dụng các tính năng mở rộng của Qdrant (ví dụ: sharding, replication) để xử lý số lượng lớn vector embedding từ nhiều kho chứa hoặc các kho chứa cực lớn.
+
+### **C. Khả năng Bảo trì**
+
+* **Chất lượng Mã:** Nhấn mạnh việc viết mã sạch, dễ hiểu, có độ bao phủ kiểm thử cao và tài liệu nội bộ rõ ràng (có khả năng sử dụng chính AutoDoc AI để tạo).  
+* **Thiết kế Mô-đun:** Duy trì thiết kế mô-đun hóa để cho phép cập nhật hoặc thay thế các thành phần riêng lẻ dễ dàng hơn (ví dụ: thay đổi nhà cung cấp mô hình AI, nâng cấp bộ phân tích cú pháp).
+
+### **D. Cân nhắc Bảo mật (Nâng cao)**
+
+* **Triển khai Dịch vụ:** Nếu AutoDoc AI được triển khai như một dịch vụ web, cần triển khai các cơ chế xác thực và ủy quyền mạnh mẽ hơn để kiểm soát quyền truy cập vào công cụ.  
+* **Lưu trữ PAT An toàn:** Nếu công cụ quản lý PAT GitHub của người dùng (thay vì chỉ yêu cầu cung cấp qua biến môi trường cho mỗi lần chạy), cần có giải pháp lưu trữ an toàn cho các token này.  
+* **Giới hạn Tốc độ và Ngăn chặn Lạm dụng:** Nếu là dịch vụ công cộng, cần có các biện pháp giới hạn tốc độ yêu cầu và ngăn chặn lạm dụng.
+
+Một khía cạnh quan trọng và thú vị là việc "dogfooding" – sử dụng chính AutoDoc AI để tạo tài liệu cho bản thân nó. Đây không chỉ là một chiến lược xác thực mạnh mẽ mà còn là một cách trình diễn hiệu quả các khả năng của công cụ. Điều này ngụ ý rằng một phiên bản khả thi tối thiểu (MVP) ban đầu của công cụ phải có khả năng tạo tài liệu cho một dự án Python. Do đó, lộ trình phát triển nên ưu tiên các tính năng cho phép nó phân tích cú pháp và tạo tài liệu cho chính mã nguồn Python của mình. Việc đạt được cột mốc này – một bản phát hành nội bộ sớm có thể tự tạo trang Docusaurus cho mình – sẽ là một minh chứng thuyết phục và một thành tựu quan trọng.
+
+## **XI. Kết luận và Khuyến nghị**
+
+AutoDoc AI là một dự án đầy tham vọng với tiềm năng to lớn trong việc thay đổi cách các nhà phát triển và tổ chức tiếp cận việc tạo và duy trì tài liệu mã nguồn. Bằng cách kết hợp sức mạnh của phân tích mã nguồn truyền thống với các khả năng tiên tiến của hệ thống đa tác tử AI, Retrieval Augmented Generation, và các mô hình ngôn ngữ lớn linh hoạt thông qua OpenRouter, công cụ này hứa hẹn sẽ mang lại giá trị đáng kể thông qua việc tự động hóa, cải thiện khả năng hiểu biết và hỗ trợ đa ngôn ngữ.
+
+**Các khuyến nghị chính cho giai đoạn tiếp theo bao gồm:**
+
+1. **Phát triển Proof-of-Concept (PoC):** Ưu tiên phát triển một PoC tập trung vào các chức năng cốt lõi:  
+   * Nhân bản và phân tích mã nguồn Python cơ bản bằng module ast.  
+   * Triển khai một luồng LangGraph đơn giản với CodeParserAgent và SummarizerAgent để tạo tóm tắt cơ bản.  
+   * Tạo đầu ra Docusaurus tối thiểu từ kết quả này. Mục tiêu của PoC là xác minh tính khả thi của kiến trúc cốt lõi và các tích hợp chính.  
+2. **Lựa chọn Mô hình AI Ban đầu:** Tiến hành thử nghiệm và lựa chọn các mô hình embedding và LLM ban đầu từ OpenRouter cho các tác vụ chính (tóm tắt, giải thích, dịch thuật). Cần cân bằng giữa hiệu suất, chi phí và khả năng hỗ trợ tiếng Việt.  
+3. **Thiết kế Chi tiết Trạng thái LangGraph:** Hoàn thiện thiết kế lược đồ trạng thái cho OrchestratorAgent trong LangGraph, đảm bảo tất cả dữ liệu cần thiết được truyền tải và duy trì một cách hiệu quả giữa các tác tử.  
+4. **Xây dựng Chiến lược "Dogfooding":** Lập kế hoạch cụ thể để AutoDoc AI có thể tự tạo tài liệu cho chính nó từ sớm. Điều này sẽ là một công cụ kiểm thử và trình diễn mạnh mẽ.  
+5. **Ưu tiên Cấu hình qua Biến Môi trường:** Đảm bảo rằng tất cả các khía cạnh có thể cấu hình (khóa API, URL dịch vụ, tên mô hình, đường dẫn đầu ra) đều được quản lý thông qua biến môi trường ngay từ đầu để tạo điều kiện thuận lợi cho việc phát triển, kiểm thử và triển khai.
+
+Việc phát triển AutoDoc AI đòi hỏi sự kết hợp giữa chuyên môn về kỹ thuật phần mềm truyền thống và kiến thức sâu rộng về các công nghệ AI mới nổi. Với một kế hoạch chi tiết, kiến trúc linh hoạt và sự tập trung vào trải nghiệm người dùng, AutoDoc AI có tiềm năng trở thành một công cụ không thể thiếu cho các nhà phát triển và cộng đồng mã nguồn mở. Tính chất mã nguồn mở của dự án sẽ là một yếu tố quan trọng để thu hút sự đóng góp và đảm bảo sự phát triển bền vững của công cụ trong tương lai.
+
+#### **Works cited**
+
+1. Programmatically importing repositories \- GitHub Docs, accessed May 23, 2025, [https://docs.github.com/en/migrations/overview/programmatically-importing-repositories](https://docs.github.com/en/migrations/overview/programmatically-importing-repositories)  
+2. Cloning a repository \- GitHub Docs, accessed May 23, 2025, [https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)  
+3. gh repo clone \- GitHub CLI, accessed May 23, 2025, [https://cli.github.com/manual/gh\_repo\_clone](https://cli.github.com/manual/gh_repo_clone)  
+4. Machine-Learning/Exploring Python's Abstract Syntax Tree Manipulation.md at main, accessed May 23, 2025, [https://github.com/xbeat/Machine-Learning/blob/main/Exploring%20Python's%20Abstract%20Syntax%20Tree%20Manipulation.md](https://github.com/xbeat/Machine-Learning/blob/main/Exploring%20Python's%20Abstract%20Syntax%20Tree%20Manipulation.md)  
+5. Abstract Syntax Trees In Python \- Pybites, accessed May 23, 2025, [https://pybit.es/articles/ast-intro/](https://pybit.es/articles/ast-intro/)  
+6. cased/kit: 🛠️ The toolkit for codebase mapping, symbol ... \- GitHub, accessed May 23, 2025, [https://github.com/cased/kit](https://github.com/cased/kit)  
+7. Refactoring \- Visual Studio Code, accessed May 23, 2025, [https://code.visualstudio.com/docs/editing/refactoring](https://code.visualstudio.com/docs/editing/refactoring)  
+8. Extract Method \- Refactoring.Guru, accessed May 23, 2025, [https://refactoring.guru/extract-method](https://refactoring.guru/extract-method)  
+9. python-code-parse \- PyPI, accessed May 23, 2025, [https://pypi.org/project/python-code-parse/](https://pypi.org/project/python-code-parse/)  
+10. 10 Code Analysis Tools: Paid \+ Open Source \- Swimm, accessed May 23, 2025, [https://swimm.io/learn/software-development/10-code-analysis-tools-paid-open-source](https://swimm.io/learn/software-development/10-code-analysis-tools-paid-open-source)  
+11. 6 Tools To Help Keep Your Dependencies And Code More Secure \- DEV Community, accessed May 23, 2025, [https://dev.to/schalkneethling/6-tools-to-help-keep-your-dependencies-and-code-more-secure-13mi](https://dev.to/schalkneethling/6-tools-to-help-keep-your-dependencies-and-code-more-secure-13mi)  
+12. Codebase Embedding \- Beginners \- Hugging Face Forums, accessed May 23, 2025, [https://discuss.huggingface.co/t/codebase-embedding/137026](https://discuss.huggingface.co/t/codebase-embedding/137026)  
+13. What is RAG: Understanding Retrieval-Augmented Generation ..., accessed May 23, 2025, [https://qdrant.tech/articles/what-is-rag-in-ai/](https://qdrant.tech/articles/what-is-rag-in-ai/)  
+14. Vector Database: Everything You Need to Know \- WEKA, accessed May 23, 2025, [https://www.weka.io/learn/guide/ai-ml/vector-dabase/](https://www.weka.io/learn/guide/ai-ml/vector-dabase/)  
+15. Metadata in Vector vs. Relational databases : r/vectordatabase \- Reddit, accessed May 23, 2025, [https://www.reddit.com/r/vectordatabase/comments/1akdo27/metadata\_in\_vector\_vs\_relational\_databases/](https://www.reddit.com/r/vectordatabase/comments/1akdo27/metadata_in_vector_vs_relational_databases/)  
+16. Learn LangGraph basics \- GitHub Pages, accessed May 23, 2025, [https://langchain-ai.github.io/langgraph/concepts/why-langgraph/](https://langchain-ai.github.io/langgraph/concepts/why-langgraph/)  
+17. README.md \- langchain-ai/langgraph \- GitHub, accessed May 23, 2025, [https://github.com/langchain-ai/langgraph/blob/main/README.md](https://github.com/langchain-ai/langgraph/blob/main/README.md)  
+18. Enhancing Code Quality with LangGraph Reflection \- Analytics Vidhya, accessed May 23, 2025, [https://www.analyticsvidhya.com/blog/2025/03/enhancing-code-quality-with-langgraph-reflection/](https://www.analyticsvidhya.com/blog/2025/03/enhancing-code-quality-with-langgraph-reflection/)  
+19. Why we chose LangGraph to build our coding agent \- Qodo, accessed May 23, 2025, [https://www.qodo.ai/blog/why-we-chose-langgraph-to-build-our-coding-agent/](https://www.qodo.ai/blog/why-we-chose-langgraph-to-build-our-coding-agent/)  
+20. Build multi-agent systems with LangGraph and Amazon Bedrock \- AWS, accessed May 23, 2025, [https://aws.amazon.com/blogs/machine-learning/build-multi-agent-systems-with-langgraph-and-amazon-bedrock/](https://aws.amazon.com/blogs/machine-learning/build-multi-agent-systems-with-langgraph-and-amazon-bedrock/)  
+21. Building Multi-Agent Systems with LangGraph-Supervisor \- DEV Community, accessed May 23, 2025, [https://dev.to/sreeni5018/building-multi-agent-systems-with-langgraph-supervisor-138i](https://dev.to/sreeni5018/building-multi-agent-systems-with-langgraph-supervisor-138i)  
+22. Introduction to LangGraph \- LangChain Academy, accessed May 23, 2025, [https://academy.langchain.com/courses/intro-to-langgraph](https://academy.langchain.com/courses/intro-to-langgraph)  
+23. Agentic RAG With LangGraph \- Qdrant, accessed May 23, 2025, [https://qdrant.tech/documentation/agentic-rag-langgraph/](https://qdrant.tech/documentation/agentic-rag-langgraph/)  
+24. 6 Best Code Embedding Models Compared: A Complete Guide | Modal Blog, accessed May 23, 2025, [https://modal.com/blog/6-best-code-embedding-models-compared](https://modal.com/blog/6-best-code-embedding-models-compared)  
+25. Vector embeddings \- OpenAI API, accessed May 23, 2025, [https://platform.openai.com/docs/guides/embeddings/what-are-embeddings](https://platform.openai.com/docs/guides/embeddings/what-are-embeddings)  
+26. The Best Embedding Models for Retrieval-Augmented Generation (RAG) \- Writingmate, accessed May 23, 2025, [https://writingmate.ai/blog/the-best-embedding-models](https://writingmate.ai/blog/the-best-embedding-models)  
+27. Choosing an Embedding Model \- Pinecone, accessed May 23, 2025, [https://www.pinecone.io/learn/series/rag/embedding-models-rundown/](https://www.pinecone.io/learn/series/rag/embedding-models-rundown/)  
+28. How to choose the best model for semantic search \- Meilisearch, accessed May 23, 2025, [https://www.meilisearch.com/blog/choosing-the-best-model-for-semantic-search](https://www.meilisearch.com/blog/choosing-the-best-model-for-semantic-search)  
+29. Models \- OpenAI API, accessed May 23, 2025, [https://platform.openai.com/docs/models](https://platform.openai.com/docs/models)  
+30. Qdrant \- ️ LangChain, accessed May 23, 2025, [https://python.langchain.com/docs/integrations/vectorstores/qdrant/](https://python.langchain.com/docs/integrations/vectorstores/qdrant/)  
+31. Vector Search Resource Optimization Guide \- Qdrant, accessed May 23, 2025, [https://qdrant.tech/articles/vector-search-resource-optimization/](https://qdrant.tech/articles/vector-search-resource-optimization/)  
+32. Large Scale Search \- Qdrant, accessed May 23, 2025, [https://qdrant.tech/documentation/database-tutorials/large-scale-search/](https://qdrant.tech/documentation/database-tutorials/large-scale-search/)  
+33. Architecture | Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/advanced/architecture](https://docusaurus.io/docs/advanced/architecture)  
+34. Advanced Tutorials \- Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/advanced](https://docusaurus.io/docs/advanced)  
+35. CLI | Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/cli](https://docusaurus.io/docs/cli)  
+36. create-docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/api/misc/create-docusaurus](https://docusaurus.io/docs/api/misc/create-docusaurus)  
+37. Deploying Docs-as-Code on AWS: Building Dynamic Documentation Sites in MkDocs and Docusaurus \- DEV Community, accessed May 23, 2025, [https://dev.to/r0mymendez/deploying-docs-as-code-on-aws-building-dynamic-documentation-sites-in-mkdocs-and-docusaurus-3516](https://dev.to/r0mymendez/deploying-docs-as-code-on-aws-building-dynamic-documentation-sites-in-mkdocs-and-docusaurus-3516)  
+38. Integrations | Mermaid, accessed May 23, 2025, [https://mermaid.js.org/ecosystem/integrations-community.html](https://mermaid.js.org/ecosystem/integrations-community.html)  
+39. Tutorial | mdx-mermaid \- GitHub Pages, accessed May 23, 2025, [https://sjwall.github.io/mdx-mermaid/docs/1.3.0/intro/](https://sjwall.github.io/mdx-mermaid/docs/1.3.0/intro/)  
+40. Tutorial | mdx-mermaid \- GitHub Pages, accessed May 23, 2025, [https://sjwall.github.io/mdx-mermaid/docs/intro/](https://sjwall.github.io/mdx-mermaid/docs/intro/)  
+41. Diagrams | Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/markdown-features/diagrams](https://docusaurus.io/docs/markdown-features/diagrams)  
+42. i18n \- Tutorial \- Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/i18n/tutorial](https://docusaurus.io/docs/i18n/tutorial)  
+43. i18n \- Introduction \- Docusaurus, accessed May 23, 2025, [https://docusaurus.io/docs/i18n/introduction](https://docusaurus.io/docs/i18n/introduction)  
+44. OpenRouter Quickstart Guide | Developer Documentation, accessed May 23, 2025, [https://openrouter.ai/docs/quickstart](https://openrouter.ai/docs/quickstart)  
+45. How to Set Up and Manage Environment Variables in Python \- Index.dev, accessed May 23, 2025, [https://www.index.dev/blog/python-environment-variables-setup](https://www.index.dev/blog/python-environment-variables-setup)  
+46. BYOK | Use Your Own Provider Keys with OpenRouter, accessed May 23, 2025, [https://openrouter.ai/docs/use-cases/byok](https://openrouter.ai/docs/use-cases/byok)  
+47. Bring Your Own Key (BYOK) & Other AI Models Are Now Available : r/LogicallyApp \- Reddit, accessed May 23, 2025, [https://www.reddit.com/r/LogicallyApp/comments/1jvcm7r/bring\_your\_own\_key\_byok\_other\_ai\_models\_are\_now/](https://www.reddit.com/r/LogicallyApp/comments/1jvcm7r/bring_your_own_key_byok_other_ai_models_are_now/)  
+48. OpenRouter \- AI Power, accessed May 23, 2025, [https://docs.aipower.org/docs/ai-engine/openrouter](https://docs.aipower.org/docs/ai-engine/openrouter)  
+49. Models: 'deepsee' \- OpenRouter, accessed May 23, 2025, [https://openrouter.ai/v1](https://openrouter.ai/v1)  
+50. Email API \- Start for Free | SendGrid, accessed May 23, 2025, [https://sendgrid.com/en-us/solutions/email-api](https://sendgrid.com/en-us/solutions/email-api)  
+51. Using the SendGrid API to Send Emails (with Python examples) | Endgrate, accessed May 23, 2025, [https://endgrate.com/blog/using-the-sendgrid-api-to-send-emails-(with-python-examples)](https://endgrate.com/blog/using-the-sendgrid-api-to-send-emails-\(with-python-examples\))  
+52. Email API Quickstart: How to Send Email with Python | SendGrid ..., accessed May 23, 2025, [https://docs.sendgrid.com/for-developers/sending-email/quickstart-python](https://docs.sendgrid.com/for-developers/sending-email/quickstart-python)  
+53. The Importance of Test Documentation in Manual Testing: Types & Best Practices, accessed May 23, 2025, [https://www.testdevlab.com/blog/the-importance-of-test-documentation-in-manual-testing-types-best-practices](https://www.testdevlab.com/blog/the-importance-of-test-documentation-in-manual-testing-types-best-practices)  
+54. Mastering Testing Documentation: A Practical Guide \- MuukTest, accessed May 23, 2025, [https://muuktest.com/blog/software-testing-documentation](https://muuktest.com/blog/software-testing-documentation)  
+55. Top open source licenses and legal risk for developers \- Black Duck, accessed May 23, 2025, [https://www.blackduck.com/blog/top-open-source-licenses.html](https://www.blackduck.com/blog/top-open-source-licenses.html)  
+56. Top Open Source Licenses Explained \- Mend.io, accessed May 23, 2025, [https://www.mend.io/blog/top-open-source-licenses-explained/](https://www.mend.io/blog/top-open-source-licenses-explained/)  
+57. About the Contributing Guide Template \- The Good Docs Project, accessed May 23, 2025, [https://www.thegooddocsproject.dev/template/contributing-guide](https://www.thegooddocsproject.dev/template/contributing-guide)  
+58. CONTRIBUTING-template.md \- GitHub, accessed May 23, 2025, [https://github.com/nayafia/contributing-template/blob/master/CONTRIBUTING-template.md](https://github.com/nayafia/contributing-template/blob/master/CONTRIBUTING-template.md)  
+59. GitHub Repo Guidelines \- Creative Commons Open Source, accessed May 23, 2025, [https://opensource.creativecommons.org/contributing-code/github-repo-guidelines/](https://opensource.creativecommons.org/contributing-code/github-repo-guidelines/)  
+60. Git Repository Structure \- GreenGeeks, accessed May 23, 2025, [https://www.greengeeks.com/tutorials/git-repository-structure/](https://www.greengeeks.com/tutorials/git-repository-structure/)

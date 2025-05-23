@@ -1,0 +1,18 @@
+# Core dependencies for AutoDoc AI
+aiohttp==3.8.5
+click==8.1.7
+gitpython==3.1.40
+langgraph==0.0.27
+nest-asyncio==1.5.8
+openai==1.3.7
+pydantic==2.4.2
+python-dotenv==1.0.0
+qdrant-client==1.6.4
+sendgrid==6.10.0
+tenacity==8.2.3
+
+# Additional dependencies
+asyncio==3.4.3
+colorama==0.4.6  # For colored terminal output
+tqdm==4.66.1  # For progress bars
+rich==13.6.0  # For rich terminal output

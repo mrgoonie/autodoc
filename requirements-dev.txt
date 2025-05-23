@@ -1,0 +1,11 @@
+# Development dependencies for AutoDoc AI
+pytest==7.4.0
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.7.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.5.1
+
+# Include all production dependencies
+-r requirements.txt

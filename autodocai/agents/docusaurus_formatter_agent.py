@@ -850,9 +850,8 @@ export default function HomepageFeatures() {
         return index_path
     
     async def _create_architecture_page(self, docs_dir: str, diagrams: Dict[str, str], 
-                                     rag_results: Dict[str, Any], language: str = "en") -> str:
+                                 rag_results: Dict[str, Any], language: str = "en") -> str:
         """Create architecture overview page.
-        
         Args:
             docs_dir: Documentation directory
             diagrams: Generated diagrams
@@ -864,17 +863,50 @@ export default function HomepageFeatures() {
         """
         # Create architecture.md file
         arch_path = os.path.join(docs_dir, "architecture.md")
+
+        def get_localized_rag_content(key: str, default_msg: str = "Information not available.") -> str:
+            if not rag_results or not isinstance(rag_results, dict):
+                return default_msg
+            
+            section_data = rag_results.get(key)
+            if section_data is None:
+                return default_msg
+            
+            if isinstance(section_data, dict):
+                return section_data.get(language.lower(), default_msg)
+            elif isinstance(section_data, str):
+                return section_data
+            return default_msg
+
+        # Get architectural overview and other sections
+        arch_overview_text = get_localized_rag_content("architectural_overview", "") # Keep original default for main overview
         
-        # Get architectural overview
-        arch_overview = ""
-        if rag_results and "architectural_overview" in rag_results:
-            arch_overview = rag_results["architectural_overview"].get(language.lower(), "")
+        # Project Overview sections
+        tech_stack_content = get_localized_rag_content("tech_stack")
+        dev_guidelines_content = get_localized_rag_content("development_guidelines")
+        
+        # Core Architecture sections
+        auth_system_content = get_localized_rag_content("authentication_system")
+        other_core_components_content = get_localized_rag_content("other_core_components")
+        
+        # API Reference
+        api_ref_content = get_localized_rag_content("api_reference")
+        
+        # Frontend System
+        frontend_content = get_localized_rag_content("frontend_system")
+        
+        # Infrastructure sections
+        env_config_content = get_localized_rag_content("environment_configuration")
+        cicd_content = get_localized_rag_content("ci_cd_pipeline")
+        db_storage_content = get_localized_rag_content("database_storage")
+        docker_content = get_localized_rag_content("docker_config")
         
         # Get architectural diagrams
-        arch_diagrams = []
-        for key, diagram in diagrams.items():
+        arch_diagrams_md_parts = []
+        for key, diagram_code in diagrams.items():
             if key.startswith("architecture") or "arch" in key:
-                arch_diagrams.append(diagram)
+                # Assuming diagram_code is already a Markdown string (e.g., Mermaid code block)
+                arch_diagrams_md_parts.append(diagram_code)
         
         # Format content
         content = f"""---
@@ -883,32 +915,68 @@ sidebar_position: 2
 
 # Architecture Overview
 
-{arch_overview}
+{arch_overview_text}
+
+## Project Overview
+
+### Tech Stack
+{tech_stack_content}
+
+### Development Guidelines
+{dev_guidelines_content}
+
+## Core Architecture
+
+### Authentication System
+{auth_system_content}
+
+### Other Core Components
+{other_core_components_content}
+
+## API Reference
+{api_ref_content}
+
+## Frontend System
+{frontend_content}
+
+## Infrastructure
+
+### Environment Configuration
+{env_config_content}
+
+### CI/CD Pipeline
+{cicd_content}
+
+### Database and Storage
+{db_storage_content}
+
+### Docker Configuration
+{docker_content}
 
 """
         
-        # Add diagrams
-        if arch_diagrams:
+        # Add architectural diagrams section if any diagrams exist
+        if arch_diagrams_md_parts:
             content += "## Architecture Diagrams\n\n"
-            for diagram in arch_diagrams:
-                content += f"{diagram}\n\n"
+            for diagram_md in arch_diagrams_md_parts:
+                content += f"{diagram_md}\n\n"
         
         # Add module dependency diagram if available
         if "module_dependencies" in diagrams:
             content += "## Module Dependencies\n\n"
+            # Assuming diagrams['module_dependencies'] is already a Markdown string
             content += f"{diagrams['module_dependencies']}\n\n"
         
         # Write to file
-        with open(arch_path, 'w') as f:
+        with open(arch_path, 'w', encoding='utf-8') as f:
             f.write(content)
-            
+        
         return arch_path
-    
     async def _create_sidebar_config(self, output_dir: str, modules: Dict[str, Dict[str, Any]]) -> str:
         """Create sidebar configuration.
         
         Args:
-            output_dir: Output directory
+{{ ... }}
             modules: Modules information
             
         Returns:

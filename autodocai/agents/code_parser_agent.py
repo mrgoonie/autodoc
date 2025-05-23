@@ -7,7 +7,9 @@ extracting functions, classes, and other relevant information for documentation.
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel
 
 from autodocai.agents.base import BaseAgent
 from autodocai.code_parser import PythonCodeParser, find_python_files, is_python_file
@@ -22,17 +24,17 @@ class CodeParserAgent(BaseAgent):
     Currently focuses on Python code with plans to expand to other languages.
     """
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the code parsing process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with parsed code information
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with parsed code information
         """
-        # Get repository information from state
-        repo_info = state.get("repo_info")
+        # Get repository information from state using our helper method
+        repo_info = self.get_state_value(state, "repo_info")
         if not repo_info:
             raise ValueError("Repository information is missing")
         
@@ -76,11 +78,14 @@ class CodeParserAgent(BaseAgent):
                         f"Error parsing file {os.path.relpath(file_path, repo_path)}: {str(e)}"
                     )
         
-        # Add parsed information to state
-        state["modules"] = modules
-        state["snippets"] = snippets
-        state["files_processed"] = files_processed
-        state["snippets_extracted"] = len(snippets)
+        # Add parsed information to state using our helper methods
+        self.set_state_value(state, "modules", modules)
+        self.set_state_value(state, "snippets", snippets)
+        self.set_state_value(state, "files_processed", files_processed)
+        self.set_state_value(state, "snippets_extracted", len(snippets))
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "code_parsing_complete")
         
         self.logger.info(
             f"Completed code analysis: {files_processed} files processed, {len(snippets)} snippets extracted"

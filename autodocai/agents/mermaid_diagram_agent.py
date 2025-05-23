@@ -9,10 +9,11 @@ import logging
 import os
 import re
 import asyncio
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import json
 
 import aiohttp
+from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_exception, wait_random_exponential
 
 from autodocai.agents.base import BaseAgent
@@ -26,18 +27,18 @@ class MermaidDiagramAgent(BaseAgent):
     that visualize code architecture, dependencies, and flows using Mermaid.js syntax.
     """
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the diagram generation process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with Mermaid diagrams
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with Mermaid diagrams
         """
-        # Get modules and snippets from state
-        modules = state.get("modules", [])
-        snippets = state.get("snippets", [])
+        # Get modules and snippets from state using the helper methods
+        modules = self.get_state_value(state, "modules", [])
+        snippets = self.get_state_value(state, "snippets", [])
         
         if not modules and not snippets:
             self.logger.warning("No code modules or snippets to generate diagrams for")
@@ -69,8 +70,11 @@ class MermaidDiagramAgent(BaseAgent):
         if arch_diagram:
             diagrams["architecture"] = arch_diagram
         
-        # Add diagrams to state
-        state["diagrams"] = diagrams
+        # Add diagrams to state using the helper method
+        self.set_state_value(state, "diagrams", diagrams)
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "diagrams_generated")
         
         self.logger.info(f"Completed diagram generation: {len(diagrams)} diagrams created")
         self._add_message(
@@ -471,11 +475,11 @@ class MermaidDiagramAgent(BaseAgent):
             self.logger.error(f"Error generating function flow diagram for {snippet.symbol_name}: {str(e)}")
             return None
     
-    async def _generate_architectural_diagram(self, state: Dict[str, Any]) -> Optional[str]:
+    async def _generate_architectural_diagram(self, state: Union[Dict[str, Any], BaseModel]) -> Optional[str]:
         """Generate an architectural overview diagram using AI.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
             Optional[str]: Mermaid diagram in text format or None if generation fails

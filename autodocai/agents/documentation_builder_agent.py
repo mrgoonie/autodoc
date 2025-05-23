@@ -7,24 +7,27 @@ This agent builds the final Docusaurus site from the generated documentation.
 import os
 import asyncio
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+
+from pydantic import BaseModel
 from autodocai.agents.base import BaseAgent
 from autodocai.schemas import MessageType
 
 class DocumentationBuilderAgent(BaseAgent):
     """Agent for building the final Docusaurus site."""
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """
         Execute the documentation building process.
         
         Args:
-            state: Current workflow state containing documentation path
+            state: Current workflow state containing documentation path (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with build information
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with build information
         """
-        docs_path = state.get("docs_path")
+        # Get docs_path using helper method
+        docs_path = self.get_state_value(state, "docs_path")
         if not docs_path:
             self._add_message(state, MessageType.ERROR, "Documentation path is missing from state")
             return state
@@ -45,13 +48,16 @@ class DocumentationBuilderAgent(BaseAgent):
             # Build the documentation site
             build_path = await self._build_documentation(docs_path)
             
-            # Update state with build information
+            # Update state with build information using helper methods
             if build_path:
-                state["build_path"] = build_path
-                state["build_result"] = {
+                self.set_state_value(state, "build_path", build_path)
+                self.set_state_value(state, "build_result", {
                     "success": True,
                     "build_path": build_path
-                }
+                })
+                
+                # Update current stage
+                self.set_state_value(state, "current_stage", "build_complete")
                 
                 self._add_message(
                     state, 

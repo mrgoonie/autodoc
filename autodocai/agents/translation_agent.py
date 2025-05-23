@@ -7,9 +7,10 @@ ensuring multilingual documentation support.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
+from pydantic import BaseModel
 
 from autodocai.agents.base import BaseAgent
 from autodocai.schemas import MessageType
@@ -22,14 +23,14 @@ class TranslationAgent(BaseAgent):
     translates it to Vietnamese using AI models via OpenRouter.
     """
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the translation process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with translated content
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with translated content
         """
         # Check if Vietnamese translation is needed
         if "VI" not in self.config.output_languages:
@@ -42,15 +43,15 @@ class TranslationAgent(BaseAgent):
         # Initialize translations dictionary
         translations = {}
         
-        # Translate summaries
-        summaries = state.get("summaries", {})
+        # Translate summaries using helper method to access state
+        summaries = self.get_state_value(state, "summaries", {})
         if summaries:
             self.logger.info(f"Translating {len(summaries)} code summaries")
             translated_summaries = await self._translate_summaries(summaries)
             translations["summaries"] = translated_summaries
         
-        # Translate RAG results
-        rag_results = state.get("rag_results", {})
+        # Translate RAG results using helper method to access state
+        rag_results = self.get_state_value(state, "rag_results", {})
         if rag_results:
             self.logger.info("Translating architectural overview and module explanations")
             
@@ -75,8 +76,11 @@ class TranslationAgent(BaseAgent):
             rag_results["module_explanations"] = translated_explanations
             translations["rag_results"] = rag_results
         
-        # Add translations to state
-        state["translations"] = translations
+        # Add translations to state using the helper method
+        self.set_state_value(state, "translations", translations)
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "translation_complete")
         
         self.logger.info("Completed Vietnamese translation")
         self._add_message(state, MessageType.SUCCESS, "Completed Vietnamese translation")

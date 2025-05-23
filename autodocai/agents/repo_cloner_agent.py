@@ -6,7 +6,9 @@ This agent is responsible for cloning GitHub repositories and preparing them for
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Union
+
+from pydantic import BaseModel
 
 from autodocai.config import AppConfig
 from autodocai.agents.base import BaseAgent
@@ -21,16 +23,31 @@ class RepoClonerAgent(BaseAgent):
     and GitHub Personal Access Token (if provided for private repositories).
     """
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the repository cloning process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with repository information
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with repository information
         """
-        config = state["config"]
+        # Get the config - for Pydantic models, we just use the config attribute directly
+        if hasattr(state, "config") and state.config:
+            config = state.config
+        elif hasattr(state, "repo_url") and hasattr(state, "output_dir"):
+            # If this is a WorkflowState without config (LangGraph model)
+            # use the properties directly from the state
+            config = self.config
+            repo_url = self.get_state_value(state, "repo_url")
+            output_dir = self.get_state_value(state, "output_dir")
+            if repo_url:
+                config.target_repo_url = repo_url
+            if output_dir:
+                config.output_dir = output_dir
+        else:
+            # Try dictionary style
+            config = self.get_state_value(state, "config", self.config)
         
         # Extract repository URL from configuration
         repo_url = config.target_repo_url
@@ -50,8 +67,11 @@ class RepoClonerAgent(BaseAgent):
                 work_dir=os.path.join(os.path.dirname(config.output_dir), "repos")
             )
             
-            # Add repository information to state
-            state["repo_info"] = repo_info
+            # Add repository information to state using our helper method
+            self.set_state_value(state, "repo_info", repo_info)
+            
+            # Update current stage in the state
+            self.set_state_value(state, "current_stage", "repo_cloning_complete")
             
             self.logger.info(f"Repository cloned successfully: {repo_info.local_path}")
             self._add_message(

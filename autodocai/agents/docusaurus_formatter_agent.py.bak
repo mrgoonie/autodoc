@@ -361,29 +361,20 @@ module.exports = sidebars;
         if rag_results and "architectural_overview" in rag_results:
             arch_overview = rag_results["architectural_overview"].get(language.lower(), "")
         
-        # Get repo attributes - safely handle Pydantic models, objects, and dicts
+        # Get repo description and name - safely handle both dict and Pydantic models
         if hasattr(repo_info, 'dict') and callable(getattr(repo_info, 'dict', None)):
-            # It's a Pydantic model
+            # It's a Pydantic model - use dict() method
             repo_dict = repo_info.dict()
             description = repo_dict.get("description", "No description available")
             repo_name = repo_dict.get("name", "Project")
-            repo_url_val = repo_dict.get("url", "")
-            default_branch_val = repo_dict.get("default_branch", "main")
-            languages_val = repo_dict.get("languages", [])
-        elif hasattr(repo_info, 'url'): # Check for a common attribute like 'url'
-            # It's an object with attributes (and not a Pydantic model handled above)
+        elif hasattr(repo_info, 'description'):
+            # It's an object with attributes
             description = getattr(repo_info, 'description', "No description available")
             repo_name = getattr(repo_info, 'name', "Project")
-            repo_url_val = getattr(repo_info, 'url', "")
-            default_branch_val = getattr(repo_info, 'default_branch', "main")
-            languages_val = getattr(repo_info, 'languages', [])
         else:
             # It's a dictionary
             description = repo_info.get("description", "No description available")
             repo_name = repo_info.get("name", "Project")
-            repo_url_val = repo_info.get("url", "")
-            default_branch_val = repo_info.get("default_branch", "main")
-            languages_val = repo_info.get("languages", [])
         
         # Format content
         content = f"""---
@@ -402,9 +393,9 @@ Welcome to the documentation for **{repo_name}**!
 
 ## Repository Information
 
-- **Repository:** [{repo_url_val}]({repo_url_val})
-- **Default Branch:** {default_branch_val}
-- **Languages:** {', '.join(languages_val)}
+- **Repository:** [{repo_info["url"]}]({repo_info["url"]})
+- **Default Branch:** {repo_info.get("default_branch", "main")}
+- **Languages:** {', '.join(repo_info.get("languages", []))}
 
 """
         
@@ -655,31 +646,98 @@ sidebar_position: 1
             
         Returns:
             str: Path to the created homepage
-        """
-        # Create src/pages directory
-        pages_dir = os.path.join(output_dir, "src", "pages")
-        os.makedirs(pages_dir, exist_ok=True)
+        
+        # Add class code
+        content.append("```python\n")
+        content.append(class_snippet.text_content.strip())
+        content.append("\n```\n\n")
 
-        # Create src/pages/index.js file
-        index_path = os.path.join(pages_dir, "index.js")
+# Add functions section
+function_snippets = [s for s in snippets if s.symbol_type == "function"]
+if function_snippets:
+    content.append("## Functions\n\n")
+    
+    for function_snippet in function_snippets:
+        function_name = function_snippet.symbol_name
+        content.append(f"### {function_name}\n\n")
+        
+        # Add function summary if available
+        if function_snippet.id in summaries:
+            summary = summaries[function_snippet.id].get(language.lower(), "")
+            if summary:
+                content.append(f"{summary}\n\n")
+        
+        # Add function code
+        content.append("```python\n")
+        content.append(function_snippet.text_content.strip())
+        content.append("\n```\n\n")
+        
+        # Add function flow diagram if available
+        flow_key = f"flow_{function_name.replace('.', '_')}"
+        if flow_key in diagrams:
+            content.append(f"#### Flow Diagram\n\n{diagrams[flow_key]}\n\n")
 
-        # Get repo description and name - safely handle both dict and Pydantic models
-        if hasattr(repo_info, 'dict') and callable(getattr(repo_info, 'dict', None)):
-            # It's a Pydantic model - use dict() method
-            repo_dict = repo_info.dict()
-            description = repo_dict.get("description", "No description available")
-            repo_name = repo_dict.get("name", "Project")
-        elif hasattr(repo_info, 'description'):
-            # It's an object with attributes
-            description = getattr(repo_info, 'description', "No description available")
-            repo_name = getattr(repo_info, 'name', "Project")
-        else:
-            # It's a dictionary
-            description = repo_info.get("description", "No description available")
-            repo_name = repo_info.get("name", "Project")
+# Write content to file
+with open(module_md_path, 'w') as f:
+    f.write(''.join(content))
 
-        # Format content
-        content = f"""import React from 'react';
+return module_md_path
+
+def _safe_filename(self, path: str) -> str:
+"""Convert a path to a safe filename.
+    
+Args:
+    path: Path to convert
+    
+Returns:
+    str: Safe filename
+"""
+# Replace invalid characters with underscores
+safe = re.sub(r'[^\w\-\.]', '_', path)
+
+# Replace dots (except the last one for extension)
+parts = safe.split('.')
+if len(parts) > 1:
+    # Keep extension, replace other dots
+    safe = '_'.join(parts[:-1]) + '.' + parts[-1]
+
+return safe
+
+async def _create_homepage(self, output_dir: str, repo_info: Any, rag_results: Any) -> str:
+"""Create homepage.
+    
+Args:
+    output_dir: Output directory
+    repo_info: Repository information
+    rag_results: Results from RAG queries
+    
+Returns:
+    str: Path to the created homepage
+"""
+# Create src/pages directory
+pages_dir = os.path.join(output_dir, "src", "pages")
+os.makedirs(pages_dir, exist_ok=True)
+
+# Create src/pages/index.js file
+index_path = os.path.join(pages_dir, "index.js")
+
+# Get repo description and name - safely handle both dict and Pydantic models
+if hasattr(repo_info, 'dict') and callable(getattr(repo_info, 'dict', None)):
+    # It's a Pydantic model - use dict() method
+    repo_dict = repo_info.dict()
+    description = repo_dict.get("description", "No description available")
+    repo_name = repo_dict.get("name", "Project")
+elif hasattr(repo_info, 'description'):
+    # It's an object with attributes
+    description = getattr(repo_info, 'description', "No description available")
+    repo_name = getattr(repo_info, 'name', "Project")
+else:
+    # It's a dictionary
+    description = repo_info.get("description", "No description available")
+    repo_name = repo_info.get("name", "Project")
+
+# Format content
+content = f"""import React from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -918,32 +976,24 @@ sidebar_position: 2
         sidebars_path = os.path.join(output_dir, "sidebars.js")
         
         # Build module items
-        module_items_str_list = []
-        if modules:
-            for module_path in sorted(modules.keys()):
-                safe_name = self._safe_filename(module_path)
-                module_items_str_list.append(f"'modules/{safe_name}/index'")
-
-        tutorial_sidebar_elements = [
-            "'intro'",
-            "'architecture'"
-        ]
-
-        if module_items_str_list:
-            modules_category = f"""{{
-  type: 'category',
-  label: 'Modules',
-  items: [
-    {', '.join(module_items_str_list)}
-  ],
-}}"""
-            tutorial_sidebar_elements.append(modules_category)
+        module_items = []
+        for module_path in sorted(modules.keys()):
+            safe_name = self._safe_filename(module_path)
+            module_items.append(f"'modules/{safe_name}/index'")
         
         # Format content
         content = f"""/** @type {{import('@docusaurus/plugin-content-docs').SidebarsConfig}} */
 const sidebars = {{
   tutorialSidebar: [
-    {', '.join(tutorial_sidebar_elements)}
+    'intro',
+    'architecture',
+    {{
+      type: 'category',
+      label: 'Modules',
+      items: [
+        {', '.join(module_items)}
+      ],
+    }},
   ],
 }};
 

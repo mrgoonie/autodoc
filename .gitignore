@@ -188,3 +188,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# AutoDocAI
+docs/**
+repos/**

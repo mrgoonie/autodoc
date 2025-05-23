@@ -8,10 +8,11 @@ context-aware querying of code repositories using Qdrant and OpenRouter.
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 import numpy as np
+from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qdrant_models
 
@@ -36,17 +37,17 @@ class RAGQueryAgent(BaseAgent):
         self.qdrant_client = None
         self.collection_name = None
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the RAG indexing and querying process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with RAG results
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with RAG results
         """
-        # Get snippets from state
-        snippets = state.get("snippets", [])
+        # Get snippets from state using the helper method
+        snippets = self.get_state_value(state, "snippets", [])
         if not snippets:
             self.logger.warning("No code snippets to index")
             self._add_message(state, MessageType.WARNING, "No code snippets to index")
@@ -65,15 +66,20 @@ class RAGQueryAgent(BaseAgent):
         await self._index_snippets(snippets)
         
         # Generate architectural overview and module explanations
-        overview = await self._generate_architectural_overview(snippets, state.get("repo_info"))
+        repo_info = self.get_state_value(state, "repo_info")
+        overview = await self._generate_architectural_overview(snippets, repo_info)
         module_explanations = await self._generate_module_explanations(snippets)
         
-        # Add results to state
-        state["rag_results"] = {
+        # Add results to state using the helper method
+        rag_results = {
             "architectural_overview": overview,
             "module_explanations": module_explanations,
             "collection_name": self.collection_name
         }
+        self.set_state_value(state, "rag_results", rag_results)
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "rag_complete")
         
         self.logger.info(f"Completed RAG indexing and generation")
         self._add_message(

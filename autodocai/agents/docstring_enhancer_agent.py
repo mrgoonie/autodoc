@@ -5,9 +5,10 @@ This agent generates or improves docstrings for code that lacks proper documenta
 """
 
 import asyncio
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 import aiohttp
+from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from autodocai.agents.base import BaseAgent
@@ -16,17 +17,18 @@ from autodocai.schemas import MessageType, CodeSnippet
 class DocstringEnhancerAgent(BaseAgent):
     """Agent for enhancing or generating docstrings for code."""
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """
         Execute the docstring enhancement process.
         
         Args:
-            state: Current workflow state containing snippets to process
+            state: Current workflow state containing snippets to process (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with enhanced docstrings
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with enhanced docstrings
         """
-        snippets = state.get("snippets", [])
+        # Get snippets using the helper method
+        snippets = self.get_state_value(state, "snippets", [])
         if not snippets:
             self._add_message(state, MessageType.WARNING, "No code snippets found to enhance docstrings")
             return state
@@ -62,8 +64,11 @@ class DocstringEnhancerAgent(BaseAgent):
                 )
                 enhanced_snippets.append(new_snippet)
         
-        # Add enhanced snippets to state
-        state["enhanced_snippets"] = enhanced_snippets
+        # Add enhanced snippets to state using the helper method
+        self.set_state_value(state, "enhanced_snippets", enhanced_snippets)
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "docstrings_enhanced")
         
         self._add_message(
             state, 

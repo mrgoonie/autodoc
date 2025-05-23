@@ -8,7 +8,9 @@ providing common functionality and a consistent interface.
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel
 
 from autodocai.config import AppConfig
 from autodocai.schemas import AgentMessage, MessageType
@@ -30,6 +32,37 @@ class BaseAgent(ABC):
         self.config = config
         self.logger = logging.getLogger(f"autodocai.agents.{self.__class__.__name__}")
     
+    def get_state_value(self, state: Union[Dict[str, Any], BaseModel], key: str, default: Any = None) -> Any:
+        """Get a value from the state, handling both dictionary and Pydantic model states.
+        
+        Args:
+            state: Current workflow state (either a dictionary or a Pydantic model)
+            key: Key to get from the state
+            default: Default value to return if key is not found
+            
+        Returns:
+            Any: Value from the state, or default if not found
+        """
+        if isinstance(state, dict):
+            return state.get(key, default)
+        elif hasattr(state, key):
+            value = getattr(state, key)
+            return value if value is not None else default
+        return default
+    
+    def set_state_value(self, state: Union[Dict[str, Any], BaseModel], key: str, value: Any) -> None:
+        """Set a value in the state, handling both dictionary and Pydantic model states.
+        
+        Args:
+            state: Current workflow state (either a dictionary or a Pydantic model)
+            key: Key to set in the state
+            value: Value to set
+        """
+        if isinstance(state, dict):
+            state[key] = value
+        elif hasattr(state, key):
+            setattr(state, key, value)
+    
     @property
     def name(self) -> str:
         """Get the agent's name.
@@ -40,30 +73,30 @@ class BaseAgent(ABC):
         return self.__class__.__name__
     
     @abstractmethod
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the agent's task.
         
         This is the main method that each agent must implement to perform its specific task.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (either a dictionary or a Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state
+            Union[Dict[str, Any], BaseModel]: Updated workflow state
         """
         pass
     
-    async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the agent's task with logging and error handling.
         
         This method wraps the _execute method with common functionality like
         logging and error handling.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (either a dictionary or a Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state
+            Union[Dict[str, Any], BaseModel]: Updated workflow state
         """
         try:
             self.logger.info(f"Starting execution")
@@ -86,27 +119,30 @@ class BaseAgent(ABC):
             # Add error message and error to the state
             self._add_message(state, MessageType.ERROR, f"Error in {self.name}: {str(e)}")
             
-            if "errors" not in state:
-                state["errors"] = []
-            state["errors"].append(f"{self.name}: {str(e)}")
+            # Add error to the errors list
+            if isinstance(state, dict):
+                if "errors" not in state:
+                    state["errors"] = []
+                state["errors"].append({"agent": self.name, "message": str(e)})
+            elif hasattr(state, "errors"):
+                # If it's a Pydantic model, we need to append to the list in a different way
+                if state.errors is None:
+                    state.errors = []
+                state.errors.append({"agent": self.name, "message": str(e)})
             
             return state
     
     def _add_message(
-        self, state: Dict[str, Any], message_type: MessageType, content: str
+        self, state: Union[Dict[str, Any], BaseModel], message_type: MessageType, content: str
     ) -> None:
         """Add a message to the state.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (either a dictionary or a Pydantic model)
             message_type: Type of message
             content: Message content
         """
-        # Ensure messages list exists
-        if "messages" not in state:
-            state["messages"] = []
-        
-        # Create and add the message
+        # Create the message
         message = AgentMessage(
             agent_name=self.name,
             message_type=message_type,
@@ -114,4 +150,14 @@ class BaseAgent(ABC):
             timestamp=datetime.now().isoformat(),
         )
         
-        state["messages"].append(message)
+        # Add the message to the state
+        if isinstance(state, dict):
+            # Dictionary-style state
+            if "messages" not in state:
+                state["messages"] = []
+            state["messages"].append(message)
+        elif hasattr(state, "messages"):
+            # Pydantic model state
+            if state.messages is None:
+                state.messages = []
+            state.messages.append(message)

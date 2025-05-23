@@ -7,9 +7,10 @@ This agent generates concise, informative summaries of code snippets using AI mo
 import asyncio
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
+from pydantic import BaseModel
 
 from autodocai.agents.base import BaseAgent
 from autodocai.schemas import CodeSnippet, MessageType
@@ -23,17 +24,17 @@ class SummarizerAgent(BaseAgent):
     efficiently process multiple snippets.
     """
     
-    async def _execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute(self, state: Union[Dict[str, Any], BaseModel]) -> Union[Dict[str, Any], BaseModel]:
         """Execute the code summarization process.
         
         Args:
-            state: Current workflow state
+            state: Current workflow state (dictionary or Pydantic model)
             
         Returns:
-            Dict[str, Any]: Updated workflow state with code summaries
+            Union[Dict[str, Any], BaseModel]: Updated workflow state with code summaries
         """
-        # Get snippets from state
-        snippets = state.get("snippets", [])
+        # Get snippets from state using our helper method
+        snippets = self.get_state_value(state, "snippets", [])
         if not snippets:
             self.logger.warning("No code snippets to summarize")
             self._add_message(state, MessageType.WARNING, "No code snippets to summarize")
@@ -45,40 +46,50 @@ class SummarizerAgent(BaseAgent):
         # Initialize summaries dictionary
         summaries = {}
         
-        # Process snippets in batches
-        batch_size = 10
+        # Process snippets in batches for better performance
+        batch_size = 10  # Adjust based on system resources
         total_processed = 0
         
-        for i in range(0, len(snippets), batch_size):
-            batch = snippets[i:i+batch_size]
-            
-            # Process batch concurrently
-            tasks = [self._summarize_snippet(snippet) for snippet in batch]
-            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Process results
-            for snippet, result in zip(batch, batch_results):
-                if isinstance(result, Exception):
-                    self.logger.warning(f"Error summarizing snippet {snippet.id}: {str(result)}")
-                    continue
+        try:
+            # Process snippets in batches
+            for i in range(0, len(snippets), batch_size):
+                batch = snippets[i:i+batch_size]
                 
-                if result:
-                    # Update snippet with summaries
-                    snippet.ai_summary_en = result.get("en")
+                # Process batch concurrently using asyncio
+                tasks = [self._summarize_snippet(snippet) for snippet in batch]
+                batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                # Process results
+                for snippet, result in zip(batch, batch_results):
+                    if isinstance(result, Exception):
+                        self.logger.warning(f"Error summarizing snippet {snippet.id}: {str(result)}")
+                        continue
                     
-                    # Add to summaries dictionary
-                    summaries[snippet.id] = {
-                        "en": result.get("en"),
-                        "vi": result.get("vi")
-                    }
-                    
-                    total_processed += 1
-            
-            # Log progress
-            self.logger.info(f"Processed {total_processed} of {len(snippets)} snippets")
+                    if result:
+                        # Update snippet with summaries
+                        snippet.ai_summary_en = result.get("en")
+                        if "vi" in result:
+                            snippet.ai_summary_vi = result.get("vi")
+                        
+                        # Add to summaries dictionary
+                        summaries[snippet.id] = {
+                            "en": result.get("en"),
+                            "vi": result.get("vi")
+                        }
+                        
+                        total_processed += 1
+                
+                # Log progress
+                self.logger.info(f"Processed {total_processed} of {len(snippets)} snippets")
+        except Exception as e:
+            self.logger.error(f"Error during batch processing: {str(e)}")
+            self._add_message(state, MessageType.ERROR, f"Error during summarization: {str(e)}")
         
-        # Update state
-        state["summaries"] = summaries
+        # Update state with our helper method
+        self.set_state_value(state, "summaries", summaries)
+        
+        # Update current stage
+        self.set_state_value(state, "current_stage", "summarization_complete")
         
         self.logger.info(f"Completed summarization: {total_processed} snippets summarized")
         self._add_message(

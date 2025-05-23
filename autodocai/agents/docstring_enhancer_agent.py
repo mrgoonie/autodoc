@@ -36,17 +36,31 @@ class DocstringEnhancerAgent(BaseAgent):
         # Process snippets without docstrings or with minimal docstrings
         enhanced_snippets = []
         for snippet in snippets:
-            if not snippet.original_docstring or len(snippet.original_docstring.strip()) < 50:
-                # This would use the OpenRouter API to generate docstrings
+            # Only enhance snippets that don't have docstrings or have very short ones
+            if not snippet.original_docstring or len(snippet.original_docstring.strip()) < 10:
+                self.logger.info(f"Enhancing docstring for {snippet.symbol_name} with length {len(snippet.original_docstring) if snippet.original_docstring else 0}")
+                # Use the OpenRouter API to generate docstrings
                 enhanced_docstring = await self._generate_docstring(
                     snippet.text_content, 
                     snippet.symbol_type,
                     snippet.symbol_name
                 )
                 
-                # Update the snippet with the enhanced docstring
-                snippet.enhanced_docstring = enhanced_docstring
-                enhanced_snippets.append(snippet)
+                # Create a copy of the snippet with the enhanced docstring
+                # We need to make a new object since the enhanced_docstring might be validated
+                new_snippet = CodeSnippet(
+                    id=snippet.id,
+                    file_path=snippet.file_path,
+                    start_line=snippet.start_line,
+                    end_line=snippet.end_line,
+                    text_content=snippet.text_content,
+                    symbol_type=snippet.symbol_type,
+                    language=snippet.language,
+                    symbol_name=snippet.symbol_name,
+                    original_docstring=snippet.original_docstring,
+                    enhanced_docstring=enhanced_docstring
+                )
+                enhanced_snippets.append(new_snippet)
         
         # Add enhanced snippets to state
         state["enhanced_snippets"] = enhanced_snippets

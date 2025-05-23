@@ -75,7 +75,7 @@ class TestDocusaurusFormatterAgent:
             # Assert
             assert "docs_path" in result
             assert result["docs_path"] == agent.config.output_dir
-            assert any(m["type"] == MessageType.SUCCESS for m in result["messages"])
+            assert any(m.message_type == MessageType.SUCCESS for m in result["messages"])
             
             # Verify all methods were called
             mock_create_config.assert_called_once()

@@ -60,7 +60,7 @@ class TestDocumentationBuilderAgent:
 
         # Assert
         assert "build_path" not in result
-        assert any(m["type"] == MessageType.ERROR for m in result["messages"])
+        assert any(m.message_type == MessageType.ERROR for m in result["messages"])
 
     @pytest.mark.asyncio
     async def test_execute_with_docs_path(self, agent, test_docs_path):
@@ -81,7 +81,7 @@ class TestDocumentationBuilderAgent:
             # Assert
             assert "build_path" in result
             assert result["build_path"] == os.path.join(test_docs_path, "build")
-            assert any(m["type"] == MessageType.SUCCESS for m in result["messages"])
+            assert any(m.message_type == MessageType.SUCCESS for m in result["messages"])
             
             # Verify methods were called
             mock_install.assert_called_once_with(test_docs_path)
@@ -186,5 +186,5 @@ class TestDocumentationBuilderAgent:
         # Assert
         assert "build_path" in result
         assert result["build_path"] == build_path
-        assert any(m["type"] == MessageType.SUCCESS for m in result["messages"])
+        assert any(m.message_type == MessageType.SUCCESS for m in result["messages"])
         assert mock_exec.call_count >= 2  # Should call for both install and build

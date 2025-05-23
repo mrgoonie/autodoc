@@ -341,81 +341,40 @@ module.exports = sidebars;
         with open(logo_path, 'w') as f:
             f.write(logo_content)
             
-    async def _create_introduction(self, docs_dir: str, repo_info: Any, rag_results: Any, language: str = "en") -> str:
-        """Create introduction page.
+    def _get_localized_rag_content(self, rag_results: Dict[str, Any], key: str, language: str, default_msg: str = "Information not available.") -> str:
+        """Helper to get localized content from RAG results."""
+        if not rag_results or not isinstance(rag_results, dict):
+            return default_msg
+        
+        section_data = rag_results.get(key)
+        if section_data is None:
+            return default_msg
+        
+        if isinstance(section_data, dict):
+            return section_data.get(language.lower(), default_msg)
+        return default_msg
+
+    def _is_code_file(self, file_path: str) -> bool:
+        """Check if a file is a code file.
         
         Args:
-            docs_dir: Documentation directory
-            repo_info: Repository information
-            rag_results: Results from RAG queries
-            language: Language code (default: en)
+            file_path: Path to the file
             
         Returns:
-            str: Path to the created introduction page
+            bool: True if the file is a code file, False otherwise
         """
-        # Create intro.md file
-        intro_path = os.path.join(docs_dir, "intro.md")
+        # List of file extensions to include
+        code_extensions = [
+            ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".c", ".cpp", ".h", ".cs", 
+            ".go", ".rb", ".php", ".swift", ".kt", ".scala", ".rs", ".sh", ".ps1"
+        ]
         
-        # Get architectural overview
-        arch_overview = ""
-        if rag_results and "architectural_overview" in rag_results:
-            arch_overview = rag_results["architectural_overview"].get(language.lower(), "")
-        
-        # Get repo attributes - safely handle Pydantic models, objects, and dicts
-        if hasattr(repo_info, 'dict') and callable(getattr(repo_info, 'dict', None)):
-            # It's a Pydantic model
-            repo_dict = repo_info.dict()
-            description = repo_dict.get("description", "No description available")
-            repo_name = repo_dict.get("name", "Project")
-            repo_url_val = repo_dict.get("url", "")
-            default_branch_val = repo_dict.get("default_branch", "main")
-            languages_val = repo_dict.get("languages", [])
-        elif hasattr(repo_info, 'url'): # Check for a common attribute like 'url'
-            # It's an object with attributes (and not a Pydantic model handled above)
-            description = getattr(repo_info, 'description', "No description available")
-            repo_name = getattr(repo_info, 'name', "Project")
-            repo_url_val = getattr(repo_info, 'url', "")
-            default_branch_val = getattr(repo_info, 'default_branch', "main")
-            languages_val = getattr(repo_info, 'languages', [])
-        else:
-            # It's a dictionary
-            description = repo_info.get("description", "No description available")
-            repo_name = repo_info.get("name", "Project")
-            repo_url_val = repo_info.get("url", "")
-            default_branch_val = repo_info.get("default_branch", "main")
-            languages_val = repo_info.get("languages", [])
-        
-        # Format content
-        content = f"""---
-sidebar_position: 1
----
+        # Check if file has a code extension
+        _, ext = os.path.splitext(file_path.lower())
+        return ext in code_extensions
 
-# Introduction
-
-Welcome to the documentation for **{repo_name}**!
-
-## Overview
-
-{description}
-
-{arch_overview}
-
-## Repository Information
-
-- **Repository:** [{repo_url_val}]({repo_url_val})
-- **Default Branch:** {default_branch_val}
-- **Languages:** {', '.join(languages_val)}
-
-"""
-        
-        # Write to file
-        with open(intro_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-            
-        return intro_path
-        
     def _group_snippets_by_module(self, snippets: List[CodeSnippet]) -> Dict[str, Dict[str, Any]]:
-        """Group snippets by module.
+        """Group code snippets by module.
         
         Args:
             snippets: List of code snippets
@@ -431,7 +390,7 @@ Welcome to the documentation for **{repo_name}**!
             file_path = snippet.file_path
             
             # Skip non-code files
-            if not file_path or not self._is_code_file(file_path):
+            if not file_path or not self._is_code_file(file_path): # Calls _is_code_file
                 continue
                 
             # Initialize module entry if it doesn't exist
@@ -457,26 +416,103 @@ Welcome to the documentation for **{repo_name}**!
                 modules[file_path]["other"].append(snippet)
                 
         return modules
-        
-    def _is_code_file(self, file_path: str) -> bool:
-        """Check if a file is a code file.
-        
-        Args:
-            file_path: Path to the file
-            
-        Returns:
-            bool: True if the file is a code file, False otherwise
-        """
-        # List of file extensions to include
-        code_extensions = [
-            ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".c", ".cpp", ".h", ".cs", 
-            ".go", ".rb", ".php", ".swift", ".kt", ".scala", ".rs", ".sh", ".ps1"
-        ]
-        
-        # Check if file has a code extension
-        _, ext = os.path.splitext(file_path.lower())
-        return ext in code_extensions
-        
+
+    async def _create_introduction(self, docs_dir: str, repo_info: Any, rag_results: Any, language: str = "en") -> str:
+        """Create introduction page with detailed architectural sections."""
+        intro_path = os.path.join(docs_dir, "intro.md")
+
+        # Get repo attributes
+        if hasattr(repo_info, 'dict') and callable(getattr(repo_info, 'dict', None)):
+            repo_dict = repo_info.dict()
+            description = repo_dict.get("description", "No description available")
+            repo_name = repo_dict.get("name", "Project")
+            repo_url_val = repo_dict.get("url", "")
+            default_branch_val = repo_dict.get("default_branch", "main")
+            languages_val = repo_dict.get("languages", [])
+        elif hasattr(repo_info, 'url'):
+            description = getattr(repo_info, 'description', "No description available")
+            repo_name = getattr(repo_info, 'name', "Project")
+            repo_url_val = getattr(repo_info, 'url', "")
+            default_branch_val = getattr(repo_info, 'default_branch', "main")
+            languages_val = getattr(repo_info, 'languages', [])
+        else:
+            description = repo_info.get("description", "No description available")
+            repo_name = repo_info.get("name", "Project")
+            repo_url_val = repo_info.get("url", "")
+            default_branch_val = repo_info.get("default_branch", "main")
+            languages_val = repo_info.get("languages", [])
+
+        # Get content for detailed sections
+        arch_overview_text = self._get_localized_rag_content(rag_results, "architectural_overview", language, "")
+        tech_stack_content = self._get_localized_rag_content(rag_results, "tech_stack", language)
+        dev_guidelines_content = self._get_localized_rag_content(rag_results, "development_guidelines", language)
+        auth_system_content = self._get_localized_rag_content(rag_results, "authentication_system", language)
+        other_core_components_content = self._get_localized_rag_content(rag_results, "other_core_components", language)
+        api_ref_content = self._get_localized_rag_content(rag_results, "api_reference", language)
+        frontend_content = self._get_localized_rag_content(rag_results, "frontend_system", language)
+        env_config_content = self._get_localized_rag_content(rag_results, "environment_configuration", language)
+        cicd_content = self._get_localized_rag_content(rag_results, "ci_cd_pipeline", language)
+        db_storage_content = self._get_localized_rag_content(rag_results, "database_storage", language)
+        docker_content = self._get_localized_rag_content(rag_results, "docker_config", language)
+
+        content = f"""---
+sidebar_position: 1
+---
+
+# Introduction
+
+Welcome to the documentation for **{repo_name}**!
+
+## Overview
+
+{description}
+
+{arch_overview_text}
+
+### Tech Stack
+{tech_stack_content}
+
+### Development Guidelines
+{dev_guidelines_content}
+
+## Core Architecture
+
+### Authentication System
+{auth_system_content}
+
+### Other Core Components
+{other_core_components_content}
+
+## API Reference
+{api_ref_content}
+
+## Frontend System
+{frontend_content}
+
+## Infrastructure
+
+### Environment Configuration
+{env_config_content}
+
+### CI/CD Pipeline
+{cicd_content}
+
+### Database and Storage
+{db_storage_content}
+
+### Docker Configuration
+{docker_content}
+
+## Repository Information
+
+- **Repository:** [{repo_url_val}]({repo_url_val})
+- **Default Branch:** {default_branch_val}
+- **Languages:** {', '.join(languages_val)}
+
+"""
+        with open(intro_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return intro_path
     async def _create_module_page(self, docs_dir: str, module_path: str, snippets: List[CodeSnippet], 
                                summaries: Dict[str, Dict[str, str]], diagrams: Dict[str, str], 
                                rag_results: Dict[str, Any], language: str = "en") -> str:
@@ -850,70 +886,36 @@ export default function HomepageFeatures() {
         return index_path
     
     async def _create_architecture_page(self, docs_dir: str, diagrams: Dict[str, str], 
-                                 rag_results: Dict[str, Any], language: str = "en") -> str:
-        """Create architecture overview page.
-        Args:
-            docs_dir: Documentation directory
-            diagrams: Generated diagrams
-            rag_results: Results from RAG queries
-            language: Language code (default: en)
-            
-        Returns:
-            str: Path to the created architecture page
-        """
-        # Create architecture.md file
+                             rag_results: Dict[str, Any], language: str = "en") -> str:
+        """Create architecture overview page (now supplementary to intro.md)."""
         arch_path = os.path.join(docs_dir, "architecture.md")
 
-        def get_localized_rag_content(key: str, default_msg: str = "Information not available.") -> str:
-            if not rag_results or not isinstance(rag_results, dict):
-                return default_msg
-            
-            section_data = rag_results.get(key)
-            if section_data is None:
-                return default_msg
-            
-            if isinstance(section_data, dict):
-                return section_data.get(language.lower(), default_msg)
-            elif isinstance(section_data, str):
-                return section_data
-            return default_msg
-
-        # Get architectural overview and other sections
-        arch_overview_text = get_localized_rag_content("architectural_overview", "") # Keep original default for main overview
+        # Get content using the new helper method
+        arch_overview_text = self._get_localized_rag_content(rag_results, "architectural_overview", language, "")
+        tech_stack_content = self._get_localized_rag_content(rag_results, "tech_stack", language)
+        dev_guidelines_content = self._get_localized_rag_content(rag_results, "development_guidelines", language)
+        auth_system_content = self._get_localized_rag_content(rag_results, "authentication_system", language)
+        other_core_components_content = self._get_localized_rag_content(rag_results, "other_core_components", language)
+        api_ref_content = self._get_localized_rag_content(rag_results, "api_reference", language)
+        frontend_content = self._get_localized_rag_content(rag_results, "frontend_system", language)
+        env_config_content = self._get_localized_rag_content(rag_results, "environment_configuration", language)
+        cicd_content = self._get_localized_rag_content(rag_results, "ci_cd_pipeline", language)
+        db_storage_content = self._get_localized_rag_content(rag_results, "database_storage", language)
+        docker_content = self._get_localized_rag_content(rag_results, "docker_config", language)
         
-        # Project Overview sections
-        tech_stack_content = get_localized_rag_content("tech_stack")
-        dev_guidelines_content = get_localized_rag_content("development_guidelines")
-        
-        # Core Architecture sections
-        auth_system_content = get_localized_rag_content("authentication_system")
-        other_core_components_content = get_localized_rag_content("other_core_components")
-        
-        # API Reference
-        api_ref_content = get_localized_rag_content("api_reference")
-        
-        # Frontend System
-        frontend_content = get_localized_rag_content("frontend_system")
-        
-        # Infrastructure sections
-        env_config_content = get_localized_rag_content("environment_configuration")
-        cicd_content = get_localized_rag_content("ci_cd_pipeline")
-        db_storage_content = get_localized_rag_content("database_storage")
-        docker_content = get_localized_rag_content("docker_config")
-        
-        # Get architectural diagrams
         arch_diagrams_md_parts = []
-        for key, diagram_code in diagrams.items():
-            if key.startswith("architecture") or "arch" in key:
-                # Assuming diagram_code is already a Markdown string (e.g., Mermaid code block)
-                arch_diagrams_md_parts.append(diagram_code)
-        
-        # Format content
+        if diagrams: # Ensure diagrams is not None
+            for key, diagram_code in diagrams.items():
+                if key.startswith("architecture") or "arch" in key:
+                    arch_diagrams_md_parts.append(diagram_code)
+
         content = f"""---
 sidebar_position: 2
 ---
 
-# Architecture Overview
+# Architecture Overview (Supplementary)
+
+This page provides an overview of the system architecture, primarily focusing on diagrams. For the most comprehensive textual details, please see the **Introduction** page.
 
 {arch_overview_text}
 
@@ -954,23 +956,17 @@ sidebar_position: 2
 {docker_content}
 
 """
-        
-        # Add architectural diagrams section if any diagrams exist
         if arch_diagrams_md_parts:
-            content += "## Architecture Diagrams\n\n"
+            content += "\n## Architecture Diagrams\n\n"
             for diagram_md in arch_diagrams_md_parts:
                 content += f"{diagram_md}\n\n"
         
-        # Add module dependency diagram if available
-        if "module_dependencies" in diagrams:
-            content += "## Module Dependencies\n\n"
-            # Assuming diagrams['module_dependencies'] is already a Markdown string
+        if diagrams and "module_dependencies" in diagrams: # Ensure diagrams is not None
+            content += "\n## Module Dependencies\n\n"
             content += f"{diagrams['module_dependencies']}\n\n"
-        
-        # Write to file
+            
         with open(arch_path, 'w', encoding='utf-8') as f:
             f.write(content)
-        
         return arch_path
     async def _create_sidebar_config(self, output_dir: str, modules: Dict[str, Dict[str, Any]]) -> str:
         """Create sidebar configuration.

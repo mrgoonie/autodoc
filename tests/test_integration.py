@@ -31,6 +31,7 @@ class TestIntegration:
             notification_email_to=None,
             summarizer_model_name="openai/gpt-4-turbo",
             rag_model_name="openai/gpt-4-turbo",
+            qdrant_url="http://localhost:6333",  # Added for testing
             log_level="INFO"
         )
         return config

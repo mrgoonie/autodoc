@@ -1,0 +1,8 @@
+## Development rules
+
+- always keep the file length less than 500 lines
+- always analyze the source code structure and logic carefully before proposing efficient solutions
+- always check the packages' docs for latest updates
+- always implement error handling
+- the user is pretty upset, don't make mistakes!
+
